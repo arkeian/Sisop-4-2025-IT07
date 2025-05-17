@@ -255,24 +255,6 @@ static int mai_open(const char *path, struct fuse_file_info *fi)
     {
         return -ENOENT;
     }
-
-    if (fi->flags & O_CREAT)
-    {
-        char parent[BUFFER];
-        strcpy(parent, truePath);
-        *strrchr(parent, '/') = '\0';
-        mkdir(parent, 0755);
-        int res;
-
-        res = open(fullPath, fi->flags, 0666);
-        if (res == -1)
-        {
-            return -errno;
-        }
-        close(res);
-        return 0;
-    }
-
     int res;
 
     res = open(fullPath, fi->flags, 0666);
@@ -596,15 +578,6 @@ static int mai_create(const char *path, mode_t mode, struct fuse_file_info *fi)
     else
     {
         return -ENOENT;
-    }
-    char dirPath[BUFFER];
-    snprintf(dirPath, BUFFER, "%s%s", riildir, truePath);
-    char *lastSlash = strrchr(dirPath, '/');
-    if (lastSlash)
-    {
-        *lastSlash = '\0';
-        mkdir(dirPath, 0755);
-        *lastSlash = '/';
     }
     int res;
     (void)fi;
