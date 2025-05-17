@@ -1,0 +1,18 @@
+version: "3.9"
+
+services:
+  antink-server:
+    build: .
+    container_name: antink-server
+    privileged: true
+    volumes:
+      - ./it24_host:/it24_host:ro
+      - ./antink_mount:/antink_mount
+      - ./antink-logs:/var/log/it24
+
+  antink-logger:
+    image: alpine:latest
+    container_name: antink-logger
+    command: sh -c "tail -F /var/log/it24/it24.log"
+    volumes:
+      - ./antink-logs:/var/log/it24
