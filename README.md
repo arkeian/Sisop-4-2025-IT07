@@ -25,6 +25,10 @@ Contoh:
 d.Catat setiap konversi yang ada ke dalam sebuah log file bernama conversion.log. Untuk formatnya adalah sebagai berikut.
 [YYYY-mm-dd][HH:MM:SS]: Successfully converted hexadecimal text [nama file string] to [nama file image].
 
+![contoh](https://github.com/jagosyafaat30/dokumetnsasi/blob/main/modul4/Screenshot%202025-05-22%20211632.png)
+
+
+![contoh](https://github.com/jagosyafaat30/dokumetnsasi/blob/main/modul4/Screenshot%202025-05-22%20211744.png)
 
 
 
