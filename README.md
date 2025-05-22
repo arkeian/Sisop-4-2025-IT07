@@ -467,3 +467,722 @@ lakukan build up docker
 
 ## • Soal  4
 ## • Revisi
+### • Revisi Soal 4
+
+Sebelumnya Soal 4: Chiho memiliki kendala di mana suatu subdirektori yang berada di bawah naungan FUSE tidak dapat diakses. Alhasil, program FUSE gagal dalam membuat file baru yang nantinya akan dilakukan pengoperasian pada subsoal-subsoal Soal 4: Chiho. Pada revisi ini, program Soal 4: Chiho dapat membuat dan me-mounting sistem FUSE pada fuse_dir, mempopulasikan direktori fuse_dir dan chiho dengan subdirektori bawaan seperti starter, metro, heaven, dan sebagainya, menggandakan file yang dimasukkan ke dalam direktori virtual fuse_dir pada direktori chiho yang ada pada disk (Subsoal 4.A: Starter), serta melakukan beberapa pengoperasian subsoal yang diantaranya: 
+
+1) Melakukan enkripsi dan dekripsi shifting berdasarkan offset pada file (Subsoal 4.B: Metro),
+2) Melakukan enkripsi dan dekripsi menggunakan metode enkripsi ROT13 (Subsoal 4.C: Dragon),
+3) Melakukan proses mengompres dan dekompres suatu file menggunakan zlib (Subsoal 4.F: Skystreet),
+4) Melakukan enkripsi menggunakan metode enkripsi AES-256-CBC yang ada pada openssl (Subsoal 4.E: Heaven).
+
+```c
+#define FUSE_USE_VERSION 31
+#define _GNU_SOURCE
+#define _XOPEN_SOURCE 700
+#define CHUNK 16384
+
+#include <fuse.h>
+#include <zlib.h>
+#include <openssl/evp.h>
+#include <openssl/rand.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <dirent.h>
+#include <errno.h>
+#include <sys/time.h>
+
+static char trueDir[PATH_MAX];
+
+static void mai_true_path(const char *path, char *trpath) {
+	snprintf(trpath, PATH_MAX, "%s%s", trueDir, path);
+}
+
+static void mai_huruf_berotasi(char *convbuf, size_t sz) {
+	for (size_t i = 0; i < sz; i++) {
+		if (convbuf[i] >= 'A' && convbuf[i] <= 'Z') {
+			convbuf[i] = ((convbuf[i] - 'A' + 13) % 26) + 'A';
+		}
+		else if (convbuf[i] >= 'a' && convbuf[i] <= 'z') {
+			convbuf[i] = ((convbuf[i] - 'a' + 13) % 26) + 'a';
+		}
+		else {
+			convbuf[i] = convbuf[i];
+		}
+	}
+}
+
+static void mai_huruf_bergeser(char *convbuf, size_t sz, off_t ofst) {
+	for (size_t i = 0; i < sz; i++) {
+		if (convbuf[i] == '\0' || convbuf[i] == '\n') {
+			continue;
+		}
+		convbuf[i] = convbuf[i] + ((ofst + i) % 256);
+	}	
+}
+
+static void mai_huruf_anti_bergeser(char *convbuf, size_t sz, off_t ofst) {
+	for (size_t i = 0; i < sz; i++) {
+		if (convbuf[i] == '\0' || convbuf[i] == '\n') {
+			continue;
+		}
+		convbuf[i] = convbuf[i] - ((ofst + i) % 256);
+	}	
+}
+
+static int mai_berkas_berkompres(int fd, const char *buf, size_t sz, off_t ofst) {
+	int ret;
+    unsigned have;
+    z_stream strm;
+    unsigned char out[CHUNK];
+
+	strm.zalloc = Z_NULL;
+    strm.zfree = Z_NULL;
+    strm.opaque = Z_NULL;
+
+	ret = deflateInit2(&strm, Z_DEFAULT_COMPRESSION, Z_DEFLATED, 15 + 16, 8, Z_DEFAULT_STRATEGY);
+	if (ret != Z_OK) {
+		close(fd);
+		return -errno;
+	}
+
+	strm.next_in = (Bytef *)buf;
+    strm.avail_in = sz;
+
+	do {
+		strm.next_out = out;
+		strm.avail_out = CHUNK;
+		ret = deflate(&strm, Z_FINISH);
+
+		if (ret == Z_STREAM_ERROR) {
+			(void)deflateEnd(&strm);
+			close(fd);
+			return -errno;
+		}
+		have = CHUNK - strm.avail_out;
+
+		if (pwrite(fd, out, have, ofst) != have) {
+			(void)deflateEnd(&strm);
+			close(fd);
+			return -errno;
+		}
+	} while (strm.avail_out == 0);
+
+	deflateEnd(&strm);
+	return 0;
+}
+
+static int mai_berkas_anti_berkompres(int fd, const char *buf, size_t sz, off_t ofst) {
+	int ret;
+    unsigned have;
+    z_stream strm;
+    unsigned char out[CHUNK];
+
+	strm.zalloc = Z_NULL;
+    strm.zfree = Z_NULL;
+    strm.opaque = Z_NULL;
+	strm.next_in = (Bytef *)buf;
+    strm.avail_in = sz;
+
+	ret = inflateInit2(&strm, 15 + 16);
+	if (ret != Z_OK) {
+		close(fd);
+		return -errno;
+	}
+
+
+	do {
+		strm.next_out = out;
+		strm.avail_out = CHUNK;
+		ret = inflate(&strm, Z_NO_FLUSH);
+
+		if (ret == Z_STREAM_ERROR || ret == Z_DATA_ERROR || ret == Z_MEM_ERROR) {
+			(void)inflateEnd(&strm);
+			close(fd);
+			return -errno;
+		}
+		have = CHUNK - strm.avail_out;
+
+		if (pwrite(fd, out, have, ofst) != have) {
+			(void)inflateEnd(&strm);
+			close(fd);
+			return -errno;
+		}
+	} while (ret != Z_STREAM_END);
+
+	inflateEnd(&strm);
+	return 0;
+}
+
+static int mai_huruf_beraes(int fd, char *convbuf, size_t sz, off_t ofst) {
+	unsigned char iv[16];
+	RAND_bytes(iv, sizeof(iv));
+	if (pwrite(fd, iv, sizeof(iv), ofst) != sizeof(iv)) {
+		return -errno;
+	}
+	EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new();
+
+	unsigned char key[32] = {0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37,
+								0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35,
+								0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33,
+								0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31};
+
+	unsigned char out[sz + EVP_CIPHER_block_size(EVP_aes_256_cbc())];
+	int len;
+	EVP_EncryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, key, iv);
+	EVP_EncryptUpdate(ctx, out, &len, (const unsigned char *)convbuf, sz);
+	int cipherLen = len;
+	EVP_EncryptFinal_ex(ctx, out + len, &len);
+	cipherLen += len;
+	EVP_CIPHER_CTX_free(ctx);
+	if (pwrite(fd, out, cipherLen, sizeof(iv) + ofst) != cipherLen) {
+		return -errno;
+	}
+
+	return sz;
+}
+
+static const char *area[] = {
+	"starter",
+	"metro",
+	"dragon",
+	"blackrose",
+	"skystreet",
+	"heaven",
+	"7sref",
+	NULL
+};
+
+static int mknod_wrapper(int dirfd, const char *path, const char *link, int mode, dev_t rdev) {
+	for (const char **d = area; *d; ++d) {
+		char tmp[PATH_MAX];
+		snprintf(tmp, sizeof(tmp), "/%s", *d);
+		if (strncmp(path, tmp, strlen(tmp)) == 0 && (path[strlen(tmp)] == '/' || path[strlen(tmp)] == '\0')) {
+			char trpath[PATH_MAX];
+			mai_true_path(path, trpath);
+
+			int res;
+
+			if (S_ISREG(mode)) {
+				res = openat(dirfd, trpath, O_CREAT | O_EXCL | O_WRONLY, mode & 0777);
+				if (res >= 0) {
+					res = close(res);
+				}
+			}
+			else if (S_ISDIR(mode)) {
+				res = mkdirat(dirfd, trpath, mode);
+			}
+			else if (S_ISLNK(mode) && link != NULL) {
+				res = symlinkat(link, dirfd, trpath);
+			}
+			else if (S_ISFIFO(mode)) {
+				res = mkfifoat(dirfd, trpath, mode);
+			}
+			else {
+				res = mknodat(dirfd, trpath, mode, rdev);
+			}
+
+			return res;
+		}
+	}
+	return -ENOENT;
+}
+
+static int fill_dir_plus = 0;
+
+static void *xmp_init(struct fuse_conn_info *conn, struct fuse_config *cfg) {
+	(void) conn;
+	cfg->use_ino = 1;
+	cfg->parallel_direct_writes = 1;
+
+	if (!cfg->auto_cache) {
+		cfg->entry_timeout = 0;
+		cfg->attr_timeout = 0;
+		cfg->negative_timeout = 0;
+	}
+
+	return NULL;
+}
+
+static int xmp_getattr(const char *path, struct stat *stbuf, struct fuse_file_info *fi) {
+	(void) fi;
+
+	if (strcmp(path, "/") == 0) {
+		stbuf->st_mode = S_IFDIR | 0755;
+		stbuf->st_nlink = 2;
+		return 0;
+	}
+
+	for (const char **d = area; *d; ++d) {
+		char tmp[PATH_MAX];
+		snprintf(tmp, sizeof(tmp), "/%s", *d);
+		if (strncmp(path, tmp, strlen(tmp)) == 0 && (path[strlen(tmp)] == '/' || path[strlen(tmp)] == '\0')) {
+			char trpath[PATH_MAX];
+			mai_true_path(path, trpath);
+			
+			int res;
+
+			res = lstat(trpath, stbuf);
+			if (res == -1) {
+				return -errno;
+			}
+
+			return 0;
+		}
+	}
+	return -ENOENT;
+}
+
+static int xmp_access(const char *path, int mask) {
+	for (const char **d = area; *d; ++d) {
+		char tmp[PATH_MAX];
+		snprintf(tmp, sizeof(tmp), "/%s", *d);
+		if (strncmp(path, tmp, strlen(tmp)) == 0 && (path[strlen(tmp)] == '/' || path[strlen(tmp)] == '\0')) {
+			char trpath[PATH_MAX];
+			mai_true_path(path, trpath);
+
+			int res;
+
+			res = access(trpath, mask);
+			if (res == -1) {
+				return -errno;
+			}
+
+			return 0;
+		}
+	}
+	return -ENOENT;
+}
+
+
+static int xmp_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info *fi, enum fuse_readdir_flags flags) {
+	(void) offset;
+	(void) fi;
+	(void) flags;
+
+	char trpath[PATH_MAX];
+	mai_true_path(path, trpath);
+
+	DIR *dp;
+	struct dirent *de;
+	
+	dp = opendir(trpath);
+	if (dp == NULL) {
+		return -errno;
+	}
+
+	filler(buf, ".", NULL, 0, 0);
+	filler(buf, "..", NULL, 0, 0);
+
+	while ((de = readdir(dp)) != NULL) {
+		struct stat st;
+		memset(&st, 0, sizeof(st));
+		st.st_ino = de->d_ino;
+		st.st_mode = de->d_type << 12;
+
+		filler(buf, de->d_name, &st, 0, 0);
+	}
+	closedir(dp);
+
+	return 0;
+}
+
+static int xmp_mknod(const char *path, mode_t mode, dev_t rdev) {
+	for (const char **d = area; *d; ++d) {
+		char tmp[PATH_MAX];
+		snprintf(tmp, sizeof(tmp), "/%s", *d);
+		if (strncmp(path, tmp, strlen(tmp)) == 0 && (path[strlen(tmp)] == '/' || path[strlen(tmp)] == '\0')) {
+			int res;
+
+			res = mknod_wrapper(AT_FDCWD, path, NULL, mode, rdev);
+			if (res == -1) {
+				return -errno;
+			}
+
+			return 0;
+		}
+	}
+	return -ENOENT;
+}
+
+static int xmp_mkdir(const char *path, mode_t mode) {
+	for (const char **d = area; *d; ++d) {
+		char tmp[PATH_MAX];
+		snprintf(tmp, sizeof(tmp), "/%s", *d);
+		if (strncmp(path, tmp, strlen(tmp)) == 0 && (path[strlen(tmp)] == '/' || path[strlen(tmp)] == '\0')) {
+			char trpath[PATH_MAX];
+			mai_true_path(path, trpath);
+
+			int res;
+			
+			res = mkdir(trpath, mode);
+			if (res == -1) {
+				return -errno;
+			}
+
+			return 0;
+		}
+	}
+	return -ENOENT;
+}
+
+static int xmp_rmdir(const char *path) {
+	for (const char **d = area; *d; ++d) {
+		char tmp[PATH_MAX];
+		snprintf(tmp, sizeof(tmp), "/%s", *d);
+		if (strncmp(path, tmp, strlen(tmp)) == 0 && (path[strlen(tmp)] == '/' || path[strlen(tmp)] == '\0')) {
+			char trpath[PATH_MAX];
+			mai_true_path(path, trpath);
+
+			int res;
+
+			res = rmdir(trpath);
+			if (res == -1) {
+				return -errno;
+			}
+
+			return 0;
+		}
+	}
+	return -ENOENT;
+}
+
+static int xmp_utimens(const char *path, const struct timespec ts[2], struct fuse_file_info *fi) {
+	(void) fi;
+
+	for (const char **d = area; *d; ++d) {
+		char tmp[PATH_MAX];
+		snprintf(tmp, sizeof(tmp), "/%s", *d);
+		if (strncmp(path, tmp, strlen(tmp)) == 0 && (path[strlen(tmp)] == '/' || path[strlen(tmp)] == '\0')) {
+			char trpath[PATH_MAX];
+			mai_true_path(path, trpath);
+
+			int res;
+
+			res = utimensat(0, trpath, ts, AT_SYMLINK_NOFOLLOW);
+			if (res == -1) {
+				return -errno;
+			}
+
+			return 0;
+		}
+	}
+	return -ENOENT;
+}
+
+static int xmp_create(const char *path, mode_t mode, struct fuse_file_info *fi) {
+	for (const char **d = area; *d; ++d) {
+		char tmp[PATH_MAX];
+		snprintf(tmp, sizeof(tmp), "/%s", *d);
+		if (strncmp(path, tmp, strlen(tmp)) == 0 && (path[strlen(tmp)] == '/' || path[strlen(tmp)] == '\0')) {
+			char trpath[PATH_MAX];
+			mai_true_path(path, trpath);
+
+			int res;
+
+			res = open(trpath, fi->flags | O_CREAT, mode & 0777);
+
+			if (res == -1) {
+				return -errno;
+			}
+
+			if (fi->flags & O_DIRECT) {
+				fi->direct_io = 1;
+				fi->parallel_direct_writes = 1;
+			}
+
+			fi->fh = res;
+			return 0;
+		}
+	}
+	return -ENOENT;
+}
+
+static int xmp_open(const char *path, struct fuse_file_info *fi) {
+	for (const char **d = area; *d; ++d) {
+		char tmp[PATH_MAX];
+		snprintf(tmp, sizeof(tmp), "/%s", *d);
+		if (strncmp(path, tmp, strlen(tmp)) == 0 && (path[strlen(tmp)] == '/' || path[strlen(tmp)] == '\0')) {
+			char trpath[PATH_MAX];
+			mai_true_path(path, trpath);
+
+			int res;
+
+			res = open(trpath, fi->flags);
+			if (res == -1) {
+				return -errno;
+			}
+
+			if (fi->flags & O_DIRECT) {
+				fi->direct_io = 1;
+				fi->parallel_direct_writes = 1;
+			}
+
+			fi->fh = res;
+			return 0;
+		}
+	}
+	return -ENOENT;
+}
+
+static int xmp_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi) {
+	for (const char **d = area; *d; ++d) {
+		char tmp[PATH_MAX];
+		snprintf(tmp, sizeof(tmp), "/%s", *d);
+		if (strncmp(path, tmp, strlen(tmp)) == 0 && (path[strlen(tmp)] == '/' || path[strlen(tmp)] == '\0')) {
+			char trpath[PATH_MAX];
+			mai_true_path(path, trpath);
+
+			int fd;
+			int res;
+
+			if(fi == NULL) {
+				fd = open(trpath, O_RDONLY);
+			}
+			else {
+				fd = fi->fh;
+			}
+			
+			if (fd == -1) {
+				return -errno;
+			}
+
+			if (strstr(trpath, "skystreet")) {
+				res = mai_berkas_anti_berkompres(fd, buf, size, 0);
+			}
+			else {
+				res = pread(fd, buf, size, offset);
+			}
+			if (res == -1) {
+				res = -errno;
+			}
+			else if (res != -1 && strstr(trpath, "dragon")) {
+				mai_huruf_berotasi(buf, res);
+			}
+			else if (res != -1 && strstr(trpath, "metro")) {
+				mai_huruf_anti_bergeser(buf, res, offset);
+			}
+
+			if(fi == NULL) {
+				close(fd);
+			}
+
+			return res;
+		}
+	}
+	return -ENOENT;
+}
+
+static int xmp_write(const char *path, const char *buf, size_t size, off_t offset, struct fuse_file_info *fi) {
+	for (const char **d = area; *d; ++d) {
+		char tmp[PATH_MAX];
+		snprintf(tmp, sizeof(tmp), "/%s", *d);
+		if (strncmp(path, tmp, strlen(tmp)) == 0 && (path[strlen(tmp)] == '/' || path[strlen(tmp)] == '\0')) {
+			char trpath[PATH_MAX];
+			mai_true_path(path, trpath);
+
+			int fd;
+			int res;
+
+			(void) fi;
+			if(fi == NULL) {
+				fd = open(trpath, O_WRONLY);
+			}
+			else {
+				fd = fi->fh;
+			}
+			if (fd == -1) {
+				return -errno;
+			}
+
+			if (strstr(trpath, "dragon")) {
+				char *convbuf = malloc(size);
+				memcpy(convbuf, buf, size);
+				mai_huruf_berotasi(convbuf, size);
+				res = pwrite(fd, convbuf, size, offset);
+				free(convbuf);
+			}
+			else if (strstr(trpath, "metro")) {
+				char *convbuf = malloc(size);
+				memcpy(convbuf, buf, size);
+				mai_huruf_bergeser(convbuf, size, offset);
+				res = pwrite(fd, convbuf, size, offset);
+				free(convbuf);
+			}
+			else if (strstr(trpath, "skystreet")) {
+				res = lseek(fd, 0, SEEK_END);
+				
+				if (res == -1) {
+					res = -errno;
+				}
+
+				if (fi == NULL) {
+					close(fd);
+				}
+
+				off_t end = res;
+
+				res = mai_berkas_berkompres(fd, buf, size, end);
+				if (res != 0) {
+					res = -errno;
+				}
+
+				if (fi == NULL) {
+					close(fd);
+				}
+				res = size;
+			}
+			else if (strstr(trpath, "heaven")) {
+				char *convbuf = malloc(size);
+				memcpy(convbuf, buf, size);
+				res = mai_huruf_beraes(fd, convbuf, size, offset);
+				free(convbuf);
+			}
+			else {
+				res = pwrite(fd, buf, size, offset);
+			}
+			if (res == -1) {
+				res = -errno;
+			}
+
+			if (fi == NULL) {
+				close(fd);
+			}
+			return res;
+		}
+	}
+	return -ENOENT;
+}
+
+static int xmp_statfs(const char *path, struct statvfs *stbuf) {
+	char trpath[PATH_MAX];
+	mai_true_path(path, trpath);
+	int res;
+
+	res = statvfs(trpath, stbuf);
+	if (res == -1) {
+		return -errno;
+	}
+
+	return 0;
+}
+
+static int xmp_release(const char *path, struct fuse_file_info *fi) {
+	(void) path;
+	close(fi->fh);
+	return 0;
+}
+
+static int xmp_fsync(const char *path, int isdatasync, struct fuse_file_info *fi) {
+	(void) path;
+	(void) isdatasync;
+	(void) fi;
+	return 0;
+}
+
+static off_t xmp_lseek(const char *path, off_t off, int whence, struct fuse_file_info *fi) {
+	for (const char **d = area; *d; ++d) {
+		char tmp[PATH_MAX];
+		snprintf(tmp, sizeof(tmp), "/%s", *d);
+		if (strncmp(path, tmp, strlen(tmp)) == 0 && (path[strlen(tmp)] == '/' || path[strlen(tmp)] == '\0')) {
+			char trpath[PATH_MAX];
+			mai_true_path(path, trpath);
+
+			int fd;
+			off_t res;
+
+			if (fi == NULL) {
+				fd = open(trpath, O_RDONLY);
+			}
+			else {
+				fd = fi->fh;
+			}
+
+			if (fd == -1) {
+				return -errno;
+			}
+
+			res = lseek(fd, off, whence);
+			if (res == -1) {
+				res = -errno;
+			}
+
+			if (fi == NULL) {
+				close(fd);
+			}
+			return res;
+		}
+	}
+	return -ENOENT;
+}
+
+static const struct fuse_operations xmp_oper = {
+	.init       = xmp_init,
+	.getattr	= xmp_getattr,
+	.access		= xmp_access,
+	.readdir	= xmp_readdir,
+	.mknod		= xmp_mknod,
+	.mkdir		= xmp_mkdir,
+	.rmdir		= xmp_rmdir,
+	.utimens	= xmp_utimens,
+	.open		= xmp_open,
+	.create 	= xmp_create,
+	.read		= xmp_read,
+	.write		= xmp_write,
+	.statfs		= xmp_statfs,
+	.release	= xmp_release,
+	.fsync		= xmp_fsync,
+	.lseek		= xmp_lseek,
+};
+
+void mai_filldir(int dirfd) {
+	for (const char **d = area; *d; ++d) {
+		if (mkdirat(dirfd, *d, 0755) == -1) {
+			if (errno != EEXIST) {
+				fprintf(stderr, "%s \n", strerror(errno));
+				exit(EXIT_FAILURE);
+			}
+		}
+	}
+}
+
+int main(int argc, char *argv[]) {
+	const char *mountpoint = argv[1];
+	char cwd[PATH_MAX];
+
+	if (getcwd(cwd, sizeof(cwd)) == NULL) {
+		return -errno;
+	}
+
+	int mnt = open(mountpoint, O_RDONLY | O_DIRECTORY);
+	if (mnt == -1) {
+		return -errno;
+	}
+
+	snprintf(trueDir, sizeof(trueDir), "%s/%s", cwd, "chiho");
+
+	int trd = open(trueDir, O_RDONLY | O_DIRECTORY);
+	if (trd == -1) {
+		return -errno;
+	}
+	
+	if (chdir(mountpoint) == -1) {
+		return -errno;
+	}
+
+	mai_filldir(mnt);
+	mai_filldir(trd);
+	
+	close(mnt);
+	close(trd);
+
+	argv[1] = ".";
+
+	umask(0);
+	return fuse_main(argc, argv, &xmp_oper, NULL);
+}
+```
