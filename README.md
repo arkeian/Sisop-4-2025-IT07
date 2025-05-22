@@ -463,6 +463,25 @@ int main(int argc, char *argv[]) {
 }
 ```
 lakukan build up docker
+```sh
+docker-compose build
+```
+```sh
+docker-compose up
+```
+setelah build up selesai lakukan
+```sh
+docker-compose exec soal3_antink-server_1 ls -l /antink_moun
+```
+```sh
+ docker exec -it soal3_antink-server_1 cat /antink_mount/test.txt
+```
+
+## dokumentasi soal4
+![1](https://github.com/jagosyafaat30/dokumetnsasi/blob/main/modul4/Screenshot%202025-05-22%20220956.png)
+![2](https://github.com/jagosyafaat30/dokumetnsasi/blob/main/modul4/Screenshot%202025-05-22%20221114.png)
+![3](https://github.com/jagosyafaat30/dokumetnsasi/blob/main/modul4/Screenshot%202025-05-22%20222037.png)
+![4](https://github.com/jagosyafaat30/dokumetnsasi/blob/main/modul4/Screenshot%202025-05-22%20222147.png)
 
 
 ## • Soal  4
