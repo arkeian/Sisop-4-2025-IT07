@@ -492,12 +492,15 @@ kadang dockernya juga bertabrakan
 ## • Revisi
 ### • Revisi Soal 4
 
-Sebelumnya Soal 4: Chiho memiliki kendala di mana suatu subdirektori yang berada di bawah naungan FUSE tidak dapat diakses. Alhasil, program FUSE gagal dalam membuat file baru yang nantinya akan dilakukan pengoperasian pada subsoal-subsoal Soal 4: Chiho. Pada revisi ini, program Soal 4: Chiho dapat membuat dan me-mounting sistem FUSE pada fuse_dir, mempopulasikan direktori fuse_dir dan chiho dengan subdirektori bawaan seperti starter, metro, heaven, dan sebagainya, menggandakan file yang dimasukkan ke dalam direktori virtual fuse_dir pada direktori chiho yang ada pada disk (Subsoal 4.A: Starter), serta melakukan beberapa pengoperasian subsoal yang diantaranya: 
+Sebelumnya Soal 4: Chiho memiliki kendala di mana suatu subdirektori yang berada di bawah naungan FUSE tidak dapat diakses. Alhasil, program FUSE gagal dalam membuat file baru yang nantinya akan dilakukan pengoperasian pada subsoal-subsoal Soal 4: Chiho. Pada revisi ini, program `maimai_fs` dapat membuat dan me-mounting sistem FUSE pada `fuse_dir`, mempopulasikan direktori `fuse_dir` dan `chiho` dengan subdirektori yang telah didefinisikan dan dinyatakan di dalam soal seperti `starter`, `metro`, `heaven`, dan sebagainya, menggandakan file yang dimasukkan ke dalam direktori virtual `fuse_dir` pada direktori `chiho` yang ada pada disk, serta melakukan beberapa pengoperasian subsoal yang diurutkan berdasarkan waktu penyelesaiannya: 
 
-1) Melakukan enkripsi dan dekripsi shifting berdasarkan offset pada file (Subsoal 4.B: Metro),
-2) Melakukan enkripsi dan dekripsi menggunakan metode enkripsi ROT13 (Subsoal 4.C: Dragon),
-3) Melakukan proses mengompres dan dekompres suatu file menggunakan zlib (Subsoal 4.F: Skystreet),
-4) Melakukan enkripsi menggunakan metode enkripsi AES-256-CBC yang ada pada openssl (Subsoal 4.E: Heaven).
+1) Subsoal 4.A: Starter, menampilkan file pada direktori `chiho` yang dimasukkan dengan cara memasukkannya ke dalam direktori `fuse_dir`.
+2) Subsoal 4.B: Metro, melakukan enkripsi dan dekripsi shifting berdasarkan offset karakter pada file.
+3) Subsoal 4.C: Dragon, melakukan enkripsi dan dekripsi menggunakan metode enkripsi ROT13 (Subsoal 4.C: Dragon).
+4) Subsoal 4.F: Skystreet, melakukan proses mengompres dan dekompres suatu file menggunakan library `<zlib>`.
+5) Subsoal 4.E: Heaven, melakukan enkripsi menggunakan metode enkripsi AES-256-CBC yang ada pada library `<openssl>`.
+
+Adapun tampilan program revisi dari `maimai_fs` adalah sebagai berikut:
 
 ```c
 #define FUSE_USE_VERSION 31
