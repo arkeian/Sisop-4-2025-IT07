@@ -1209,3 +1209,12 @@ int main(int argc, char *argv[]) {
 	return fuse_main(argc, argv, &xmp_oper, NULL);
 }
 ```
+
+#### • Kendala yang Masih Dialami
+Pada kasus tertentu dimana program `maimai_fs` memerlukan suatu file untuk dibuat didalam FUSE yang diluar penanganan function `xmp_create()` maka file tersebut akan terbuat hanya dengan hak ases eksekusi untuk `root` saja. Kasus ini menyebabkan `user`, `groups`, atau bahkan `root` sendiri tidak dapat membaca file tersebut sehingga saat dijalankan command `cat` maka prosesnya akan melemparkan error ke layar terminal. Sebelumnya, saat proses inisiasi dan mempopulasikan direktori `fuse_dir` dan `chiho` dengan subdirektori yang telah didefinisikan dan dinyatakan di dalam soal, function `xmp_create()` menyediakan opsi untuk membuat file tersebut dalam mode `0777` di mana semua pengguna baik itu `root`, `user`, atau `groups` dapat mengeksekusi, membaca, dan menulis terhadap file yang dibuat tersebut. Namun, ada beberapa kasus pada program ini di mana program tidak akan menggunakan `xmp_create()` atau mode `0777` dalam pembuatannya, sehingga file tersebut kembali ke bentuk setelan awalnya. Kasus ini dapat dilihat pada saat mencoba untuk mengdekompres file yang sebelumnya telah terkompres menggunakan zlib yang telah dinyatakan pada subsoal 4.F: Skystreet. File hasil dekompres yang diciptakan pada program ini tidak dapat dibuka baik melalui command line seperti menggunakan `cat` atau secara UI pada VSCode.
+
+<p align="center">
+	<img src="https://github.com/user-attachments/assets/32e2b1c3-37d9-4f3e-8237-f05791bf3daa" alt="Dewa 19 - Aku Milikmu" width="640" height="360">  
+</p>
+
+> (?) Screenshot potret tampilan file `foo.txt` yang merupakan hasil dari proses dekompres program `maimai_fs` yang gagal dibuka karena user yang membuka file tidak memiliki hak akses. 
