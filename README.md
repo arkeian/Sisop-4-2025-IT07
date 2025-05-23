@@ -9,36 +9,60 @@
 
 ## • Soal  1
 
-The Shorekeeper adalah sebuah entitas misterius yang memimpin dan menjaga Black Shores secara keseluruhan. Karena Shorekeeper hanya berada di Black Shores, ia biasanya berjalan - jalan di sekitar Black Shores untuk mencari anomali - anomali yang ada untuk mencegah adanya kekacauan ataupun krisis di Black Shores. Semenjak kemunculan Fallacy of No Return, ia semakin ketat dalam melakukan pencarian anomali - anomali yang ada di Black Shores untuk mencegah hal yang sama terjadi lagi.
-Suatu hari, saat di Tethys' Deep, Shorekeeper menemukan sebuah anomali yang baru diketahui. Anomali ini berupa sebuah teks acak yang kelihatannya tidak memiliki arti. Namun, ia mempunyai ide untuk mencari arti dari teks acak tersebut. [Author: Haidar / scar / hemorrhager / 恩赫勒夫]
+<p align="justify">
+&emsp; The Shorekeeper adalah sebuah entitas misterius yang memimpin dan menjaga Black Shores secara keseluruhan. Karena Shorekeeper hanya berada di Black Shores, ia biasanya berjalan - jalan di sekitar Black Shores untuk mencari anomali - anomali yang ada untuk mencegah adanya kekacauan ataupun krisis di Black Shores. Semenjak kemunculan Fallacy of No Return, ia semakin ketat dalam melakukan pencarian anomali - anomali yang ada di Black Shores untuk mencegah hal yang sama terjadi lagi.
+Suatu hari, saat di Tethys' Deep, Shorekeeper menemukan sebuah anomali yang baru diketahui. Anomali ini berupa sebuah teks acak yang kelihatannya tidak memiliki arti. Namun, ia mempunyai ide untuk mencari arti dari teks acak tersebut.
+</p>
+  
+[Author: Haidar / scar / hemorrhager / 恩赫勒夫]
 
+<ol type="a">
+	<li>
+		<p align="justify">
+			Pertama, Shorekeeper akan mengambil beberapa sampel anomali teks dari link berikut: https://drive.google.com/file/d/1hi_GDdP51Kn2JJMw02WmCOxuc3qrXzh5/view. Pastikan file zip terhapus setelah proses unzip.
+		</p>
+	</li>
+	<li>
+		<p align="justify">
+			Setelah melihat teks - teks yang didapatkan, ia menyadari bahwa format teks tersebut adalah hexadecimal. Dengan informasi tersebut, Shorekeeper mencoba untuk mencoba idenya untuk mencari makna dari teks - teks acak tersebut, yaitu dengan mengubahnya dari string hexadecimal menjadi sebuah file image. Bantulah Shorekeeper dengan membuat kode untuk FUSE yang dapat mengubah string hexadecimal menjadi sebuah gambar ketika file text tersebut dibuka di mount directory. Lalu, letakkan hasil gambar yang didapat ke dalam directory bernama “image”.
+		  </p>
+	</li>
+	<li>
+		<p align="justify">
+			Untuk penamaan file hasil konversi dari string ke image adalah [nama file string]_image_[YYYY-mm-dd]_[HH:MM:SS].
+		</p>
+	</li>
+	<li>
+		<p align="justify">
+			Catat setiap konversi yang ada ke dalam sebuah log file bernama conversion.log. Untuk formatnya adalah sebagai berikut.
+	[YYYY-mm-dd][HH:MM:SS]: Successfully converted hexadecimal text [nama file string] to [nama file image].
+		</p>
+	</li>
+</ol>
 
-a.Pertama, Shorekeeper akan mengambil beberapa sampel anomali teks dari [link berikut](https://drive.google.com/file/d/1hi_GDdP51Kn2JJMw02WmCOxuc3qrXzh5/view). Pastikan file zip terhapus setelah proses unzip.
+<p align="center">
+	<img src="https://github.com/jagosyafaat30/dokumetnsasi/blob/main/modul4/Screenshot%202025-05-22%20211632.png" alt="Letto - Ruang Rindu">  
+</p>
 
+> (1.1) Screenshot potret contoh output dari `conversion.log`. 
 
-b.Setelah melihat teks - teks yang didapatkan, ia menyadari bahwa format teks tersebut adalah hexadecimal. Dengan informasi tersebut, Shorekeeper mencoba untuk mencoba idenya untuk mencari makna dari teks - teks acak tersebut, yaitu dengan mengubahnya dari string hexadecimal menjadi sebuah file image. Bantulah Shorekeeper dengan membuat kode untuk FUSE yang dapat mengubah string hexadecimal menjadi sebuah gambar ketika file text tersebut dibuka di mount directory. Lalu, letakkan hasil gambar yang didapat ke dalam directory bernama “image”.
+<p align="center">
+	<img src="https://github.com/jagosyafaat30/dokumetnsasi/blob/main/modul4/Screenshot%202025-05-22%20211744.png" alt="SAMSONS - Kenangan Terindah">  
+</p>
 
-c.Untuk penamaan file hasil konversi dari string ke image adalah [nama file string]_image_[YYYY-mm-dd]_[HH:MM:SS].
-Contoh:
-1_image_2025-05-11_18:35:26.png
+> (1.2) Screenshot potret contoh struktur akhir dari Soal 1.
 
-d.Catat setiap konversi yang ada ke dalam sebuah log file bernama conversion.log. Untuk formatnya adalah sebagai berikut.
-[YYYY-mm-dd][HH:MM:SS]: Successfully converted hexadecimal text [nama file string] to [nama file image].
+### • Penyelesaian Soal 1
+1) Download dan Unzip:
 
-![contoh](https://github.com/jagosyafaat30/dokumetnsasi/blob/main/modul4/Screenshot%202025-05-22%20211632.png)
-
-
-![contoh](https://github.com/jagosyafaat30/dokumetnsasi/blob/main/modul4/Screenshot%202025-05-22%20211744.png)
-
-## Penyelesaian
-download dan unzip 
 ```sh
 wget -O anomali.zip "https://drive.usercontent.google.com/u/0/uc?id=1hi_GDdP51Kn2JJMw02WmCOxuc3qrXzh5&export=download" && unzip -o anomali.zip
 
 ```
 
-membuat fuse hexed.c
-```sh
+2) Membuat fuse `hexed.c`:
+
+```c
 
 #define FUSE_USE_VERSION 31
 #include <fuse.h>
@@ -195,41 +219,72 @@ int main(int argc, char *argv[]) {
     umask(0);
     return fuse_main(argc, argv, &xmp_oper, NULL);
 }
-
 ```
-Compile file hexed.c
+
+3) Compile file `hexed.c`:
+
 ```sh
 gcc -Wall hexed.c -o hexed $(pkg-config fuse --cflags --libs)
-
 ```
-Buat file mount_point
+
+4) Buat file mount_point:
+
 ```sh
 mkdir -p mnt
 ```
-jalankan fuse dengan command
+
+5) Jalankan fuse dengan command:
+
 ```sh
 ./hexed -f mnt
 ```
 
-baca file txt dengan
+6) Baca file txt dengan:
+
 ```sh
 cat mnt/1.txt dst..
 ```
 
-untuk mematikan fuse gunakan
+7) Untuk mematikan fuse gunakan:
+
 ```sh
 fusermount -u mnt
 ```
 
-## dokumentasi soal1
-![1](https://github.com/jagosyafaat30/dokumetnsasi/blob/main/modul4/Screenshot%202025-05-22%20213350.png)
-![2](https://github.com/jagosyafaat30/dokumetnsasi/blob/main/modul4/Screenshot%202025-05-22%20213558.png)
-![3](https://github.com/jagosyafaat30/dokumetnsasi/blob/main/modul4/Screenshot%202025-05-22%20213638.png)
-![4](https://github.com/jagosyafaat30/dokumetnsasi/blob/main/modul4/Screenshot%202025-05-22%20213732.png)
+### • Dokumentasi Soal 1
+
+<p align="center">
+	<img src="https://github.com/jagosyafaat30/dokumetnsasi/blob/main/modul4/Screenshot%202025-05-22%20213350.png" alt="Repvblik - Sandiwara Cinta">  
+</p>
+
+<p align="center">
+	<img src="https://github.com/jagosyafaat30/dokumetnsasi/blob/main/modul4/Screenshot%202025-05-22%20213558.png" alt="D'MASIV - Pergilah Kasih">  
+</p>
+
+<p align="center">
+	<img src="https://github.com/jagosyafaat30/dokumetnsasi/blob/main/modul4/Screenshot%202025-05-22%20213638.png" alt="Ada Band - Setengah Hati">  
+</p>
+
+<p align="center">
+	<img src="https://github.com/jagosyafaat30/dokumetnsasi/blob/main/modul4/Screenshot%202025-05-22%20213732.png" alt="Andra and The Backbone - Sempurna">  
+</p>
 
 ## • Soal  2
-Pada suatu hari, seorang ilmuwan muda menemukan sebuah drive tua yang tertanam di reruntuhan laboratorium robotik. Saat diperiksa, drive tersebut berisi pecahan data dari satu-satunya robot perawat legendaris yang dikenal dengan nama `Baymax`. Sayangnya, akibat kerusakan sistem selama bertahun-tahun, file utuh Baymax telah terfragmentasi menjadi 14 bagian kecil, masing-masing berukuran 1 kilobyte, dan tersimpan dalam direktori bernama relics. Pecahan tersebut diberi nama berurutan seperti `Baymax.jpeg.000, Baymax.jpeg.001`, hingga `Baymax.jpeg.013`. Ilmuwan tersebut kini ingin membangkitkan kembali Baymax ke dalam bentuk digital yang utuh, namun ia tidak ingin merusak file asli yang telah rapuh tersebut. `(Author : Icel / wonbunsa).`  
-a. Sebagai asisten teknis, tugasmu adalah membuat sebuah sistem file virtual menggunakan `FUSE (Filesystem in Userspace)` yang dapat membantu sang ilmuwan. Buatlah sebuah direktori mount bernama bebas (misalnya `mount_dir`) yang merepresentasikan tampilan Baymax dalam bentuk file utuh `Baymax.jpeg`. File sistem tersebut akan mengambil data dari folder `relics` sebagai sumber aslinya.
+
+<p align="justify">
+&emsp; Pada suatu hari, seorang ilmuwan muda menemukan sebuah drive tua yang tertanam di reruntuhan laboratorium robotik. Saat diperiksa, drive tersebut berisi pecahan data dari satu-satunya robot perawat legendaris yang dikenal dengan nama `Baymax`. Sayangnya, akibat kerusakan sistem selama bertahun-tahun, file utuh Baymax telah terfragmentasi menjadi 14 bagian kecil, masing-masing berukuran 1 kilobyte, dan tersimpan dalam direktori bernama relics. Pecahan tersebut diberi nama berurutan seperti `Baymax.jpeg.000, Baymax.jpeg.001`, hingga `Baymax.jpeg.013`. Ilmuwan tersebut kini ingin membangkitkan kembali Baymax ke dalam bentuk digital yang utuh, namun ia tidak ingin merusak file asli yang telah rapuh tersebut.
+</p>
+  
+`(Author : Icel / wonbunsa).`  
+
+<ol type="a">
+	<li>
+		<p align="justify">
+			Sebagai asisten teknis, tugasmu adalah membuat sebuah sistem file virtual menggunakan `FUSE (Filesystem in Userspace)` yang dapat membantu sang ilmuwan. Buatlah sebuah direktori mount bernama bebas (misalnya `mount_dir`) yang merepresentasikan tampilan Baymax dalam bentuk file utuh `Baymax.jpeg`. File sistem tersebut akan mengambil data dari folder `relics` sebagai sumber aslinya.
+		</p>
+	</li>
+</ol>
+  
 ```markdown
 ├── mount_dir
 ├── relics
@@ -239,22 +294,57 @@ a. Sebagai asisten teknis, tugasmu adalah membuat sebuah sistem file virtual men
 │ └── Baymax.jpeg.013
 └── activity.log
 ```
-b. Ketika direktori `FUSE` diakses, pengguna hanya akan melihat `Baymax.jpeg` seolah-olah tidak pernah terpecah, meskipun aslinya terdiri dari potongan `.000` hingga `.013`. File `Baymax.jpeg` tersebut dapat dibaca, ditampilkan, dan disalin sebagaimana file gambar biasa, hasilnya merupakan gabungan sempurna dari keempat belas pecahan tersebut.  
-c. Namun sistem ini harus lebih dari sekadar menyatukan. Jika pengguna membuat file baru di dalam direktori FUSE, maka sistem harus secara otomatis memecah file tersebut ke dalam potongan-potongan berukuran maksimal 1 KB, dan menyimpannya di direktori `relics` menggunakan format `[namafile].000`, `[namafile].001`, dan seterusnya.   
-d. Ketika file tersebut dihapus dari direktori `mount`, semua pecahannya di relics juga harus ikut dihapus.  
-e. Untuk keperluan analisis ilmuwan, sistem juga harus mencatat seluruh aktivitas pengguna dalam sebuah file log bernama `activity.log` yang disimpan di direktori yang sama. Aktivitas yang dicatat antara lain:  
--  Membaca file (misalnya membuka `baymax.png`)
--  Membuat file baru (termasuk nama file dan jumlah pecahan)
--  Menghapus file (termasuk semua pecahannya yang terhapus)
--  Menyalin file (misalnya `cp baymax.png /tmp/`)
--  Contoh Log :
+
+<ol type="a" start="2">
+	<li>
+		<p align="justify">
+			Ketika direktori `FUSE` diakses, pengguna hanya akan melihat `Baymax.jpeg` seolah-olah tidak pernah terpecah, meskipun aslinya terdiri dari potongan `.000` hingga `.013`. File `Baymax.jpeg` tersebut dapat dibaca, ditampilkan, dan disalin sebagaimana file gambar biasa, hasilnya merupakan gabungan sempurna dari keempat belas pecahan tersebut.  
+		</p>
+	</li>
+</ol>
+
+<ol type="a" start="3">
+	<li>
+		<p align="justify">
+			Namun sistem ini harus lebih dari sekadar menyatukan. Jika pengguna membuat file baru di dalam direktori FUSE, maka sistem harus secara otomatis memecah file tersebut ke dalam potongan-potongan berukuran maksimal 1 KB, dan menyimpannya di direktori `relics` menggunakan format `[namafile].000`, `[namafile].001`, dan seterusnya.
+		</p>
+	</li>
+</ol>
+  
+<ol type="a" start="4">
+	<li>
+		<p align="justify">
+			Ketika file tersebut dihapus dari direktori `mount`, semua pecahannya di relics juga harus ikut dihapus.
+		</p>
+	</li>
+</ol>
+
+<ol type="a" start="5">
+	<li>
+		<p align="justify">
+			Untuk keperluan analisis ilmuwan, sistem juga harus mencatat seluruh aktivitas pengguna dalam sebuah file log bernama `activity.log` yang disimpan di direktori yang sama. Aktivitas yang dicatat antara lain:  
+		</p>
+	</li>
+</ol>
+  
+&emsp;&emsp; -  Membaca file (misalnya membuka `baymax.png`)
+  
+&emsp;&emsp; -  Membuat file baru (termasuk nama file dan jumlah pecahan)
+  
+&emsp;&emsp; -  Menghapus file (termasuk semua pecahannya yang terhapus)
+  
+&emsp;&emsp; -  Menyalin file (misalnya `cp baymax.png /tmp/`)
+  
+&emsp;&emsp; -  Contoh Log:
+  
 ```markdown
 [2025-05-11 10:24:01] READ: Baymax.jpeg
 [2025-05-11 10:25:14] WRITE: hero.txt -> hero.txt.000, hero.txt.001
 [2025-05-11 10:26:03] DELETE: Baymax.jpeg.000 - Baymax.jpeg.013
 [2025-05-11 10:27:45] COPY: Baymax.jpeg -> /tmp/Baymax.jpeg
 ```
-### Penyelesaian
+  
+### • Penyelesaian Soal 2
 Program ini merupakan implementasi virtual filesystem menggunakan FUSE v3, yang menyatukan dan memanipulasi file gambar yang dipecah menjadi 14 bagian (chunk). File asli bernama Baymax.jpeg, disimpan dalam bentuk terpecah dengan nama Baymax.jpeg.000 hingga Baymax.jpeg.013 di direktori khusus (RELICS_DIR). Filesystem ini mampu melakukan operasi dasar seperti read, write, dan delete terhadap file tersebut secara transparan bagi pengguna.  
 Berikut ini code lengkapnya :  
 ```c
