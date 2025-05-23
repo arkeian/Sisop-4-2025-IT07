@@ -1297,6 +1297,22 @@ Pada versi revisi (kode kedua), seluruh fitur yang belum berjalan pada kode pert
 -  Fungsi create Berfungsi: Pengguna dapat membuat file baru di dalam virtual filesystem. File tersebut akan otomatis terfragmentasi ke dalam potongan 1 KB jika dilakukan penulisan (write).
 -  Fungsi unlink Aktif: File yang dihapus melalui VFS akan menghapus semua fragmen file terkait dari direktori backend, sesuai dengan format penamaan {nama_file}.frag{i}.
 -  Logging Aktif: Setiap operasi read, write, create, unlink, dan rename dicatat secara otomatis dalam berkas log baymax.log. Format log mengikuti standar timestamped dengan jenis operasi dan path file yang digunakan.
+### Berikut contoh kalimat untuk menjelaskan kendala yang Anda alami dalam laporan:
+
+---
+
+### Kendala yang Dihadapi
+
+Pada tahap pengembangan awal virtual filesystem menggunakan FUSE, kami mengalami beberapa kendala teknis yang cukup signifikan, yaitu:
+
+1.  FUSE tidak berjalan pada terminal
+   Saat menjalankan program FUSE di terminal, filesystem gagal ter-mount dan tidak aktif sebagaimana yang diharapkan. Hal ini menghambat pengujian dan penggunaan fitur-fitur dasar filesystem.
+
+2.  Tidak dapat membuat file baru
+   Fungsi pembuatan file (`create`) tidak berfungsi dengan baik. Pengguna tidak dapat membuat file baru melalui filesystem, sehingga operasi tulis dan manipulasi file menjadi terbatas dan tidak dapat diuji secara optimal.
+
+Kendala-kendala ini menyebabkan keterbatasan dalam menguji fitur lain seperti penghapusan file dan pencatatan log aktivitas, karena operasi-operasi tersebut sangat bergantung pada pembuatan dan manipulasi file yang berhasil.
+
 ### • Revisi Soal 4
 
 Sebelumnya Soal 4: Chiho memiliki kendala di mana suatu subdirektori yang berada di bawah naungan FUSE tidak dapat diakses. Alhasil, program FUSE gagal dalam membuat file baru yang nantinya akan dilakukan pengoperasian pada subsoal-subsoal Soal 4: Chiho. Pada revisi ini, program `maimai_fs` dapat membuat dan me-mounting sistem FUSE pada `fuse_dir`, mempopulasikan direktori `fuse_dir` dan `chiho` dengan subdirektori yang telah didefinisikan dan dinyatakan di dalam soal seperti `starter`, `metro`, `heaven`, dan sebagainya, menggandakan file yang dimasukkan ke dalam direktori virtual `fuse_dir` pada direktori `chiho` yang ada pada disk, serta melakukan beberapa pengoperasian subsoal yang diurutkan berdasarkan waktu penyelesaiannya: 
