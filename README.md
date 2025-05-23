@@ -1032,7 +1032,7 @@ kadang dockernya juga bertabrakan
 Pada implementasi awal (kode pertama), beberapa fitur utama belum berfungsi dengan baik, antara lain:  
 -  Pembuatan File (Create): Fungsi create belum berhasil membuat file baru di dalam direktori mount point. Hal ini menyebabkan pengguna tidak dapat menyimpan file baru melalui filesystem ini.
 -  Penghapusan File (Unlink): Fungsi unlink belum terimplementasi atau tidak berjalan sebagaimana mestinya, sehingga file yang dihapus dari VFS tidak benar-benar terhapus dari direktori backend.
--  Pencatatan Aktivitas (Logging): Tidak terdapat log aktivitas seperti READ, WRITE, CREATE, DELETE, dan RENAME ke dalam file log sebagaimana yang disyaratkan. Hal ini menyulitkan debugging dan audit atas operasi yang dilakukan oleh pengguna.
+-  Pencatatan Aktivitas (Logging): Tidak terdapat log aktivitas seperti READ, WRITE, CREATE, DELETE, dan RENAME ke dalam file log sebagaimana yang disyaratkan. Hal ini menyulitkan debugging dan audit atas operasi yang dilakukan oleh pengguna.   
 Berikut ini kode perbaikannya :
 ```c
 #define FUSE_USE_VERSION 31
