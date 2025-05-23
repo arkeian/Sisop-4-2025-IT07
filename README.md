@@ -515,6 +515,233 @@ const char *RELICS_DIR = NULL;
 -  `RELICS_DIR`: menyimpan path direktori tempat semua pecahan file disimpan.
 -  `LOG_FILE` : nama file untuk mencatat aktivitas filesystem.
 -  `CHUNK_SIZE` : ukuran tiap pecahan file, yaitu 1024 byte.
+```c
+void write_log(const char *action, const char *detail) {
+    FILE *log = fopen(LOG_FILE, "a");
+    if (!log) return;
+
+    time_t t = time(NULL);
+    struct tm *lt = localtime(&t);
+    fprintf(log, "[%04d-%02d-%02d %02d:%02d:%02d] %s: %s\n",
+            lt->tm_year + 1900, lt->tm_mon + 1, lt->tm_mday,
+            lt->tm_hour, lt->tm_min, lt->tm_sec, action, detail);
+
+    fclose(log);
+}
+```
+Fungsi ini mencatat log aktivitas seperti baca, tulis, dan hapus file. Format log mencakup timestamp, jenis aksi, dan detail nama file.  
+```c
+static int baymax_getattr(const char *path, struct stat *stbuf, struct fuse_file_info *fi) {
+    memset(stbuf, 0, sizeof(struct stat));
+
+    if (strcmp(path, "/") == 0) {
+        stbuf->st_mode = S_IFDIR | 0755; // direktori
+        stbuf->st_nlink = 2;
+    } else if (strcmp(path, "/Baymax.jpeg") == 0) {
+        stbuf->st_mode = S_IFREG | 0644; // file biasa
+        stbuf->st_nlink = 1;
+
+        // Hitung ukuran total file dari semua chunk
+        char chunk_path[256];
+        FILE *f;
+        size_t size = 0;
+        for (int i = 0; i < 14; i++) {
+            sprintf(chunk_path, "%s/Baymax.jpeg.%03d", RELICS_DIR, i);
+            f = fopen(chunk_path, "rb");
+            if (f) {
+                fseek(f, 0, SEEK_END);
+                size += ftell(f);
+                fclose(f);
+            }
+        }
+        stbuf->st_size = size;
+    } else {
+        return -ENOENT;
+    }
+    return 0;
+}
+```
+Mengembalikan atribut file. Jika yang diminta adalah `root (/)`, maka diatur sebagai direktori. Jika file `Baymax.jpeg`, maka ukuran file dihitung dari total ukuran semua pecahan .000 sampai .013.
+```c
+static int baymax_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset,
+                          struct fuse_file_info *fi, enum fuse_readdir_flags flags) {
+    filler(buf, ".", NULL, 0, 0);
+    filler(buf, "..", NULL, 0, 0);
+    filler(buf, "Baymax.jpeg", NULL, 0, 0); // tampilkan file gabungan
+    return 0;
+}
+```
+Menampilkan isi direktori root virtual, yang hanya menampilkan file Baymax.jpeg. Fungsi ini mengabstraksikan 14 file pecahan menjadi satu file utuh.
+```c
+static int baymax_open(const char *path, struct fuse_file_info *fi) {
+    if (strcmp(path, "/Baymax.jpeg") != 0)
+        return -ENOENT;
+    write_log("READ", path + 1);
+    return 0;
+}
+```
+Membuka file `Baymax.jpeg`. Jika file berhasil diakses, aktivitas akan dicatat ke log dengan label `READ`
+```c
+static int baymax_read(const char *path, char *buf, size_t size, off_t offset,
+                       struct fuse_file_info *fi) {
+    if (strcmp(path, "/Baymax.jpeg") != 0)
+        return -ENOENT;
+
+    size_t bytes_read = 0;
+    int chunk_index = offset / CHUNK_SIZE;
+    size_t chunk_offset = offset % CHUNK_SIZE;
+
+    while (size > 0 && chunk_index < 14) {
+        char chunk_path[256];
+        sprintf(chunk_path, "%s/Baymax.jpeg.%03d", RELICS_DIR, chunk_index);
+
+        FILE *chunk = fopen(chunk_path, "rb");
+        if (!chunk) break;
+
+        fseek(chunk, chunk_offset, SEEK_SET);
+        size_t to_read = CHUNK_SIZE - chunk_offset;
+        if (to_read > size) to_read = size;
+
+        size_t result = fread(buf + bytes_read, 1, to_read, chunk);
+        fclose(chunk);
+
+        if (result == 0) break;
+        size -= result;
+        bytes_read += result;
+
+        chunk_index++;
+        chunk_offset = 0;
+    }
+    return bytes_read;
+}
+```
+Membaca isi Baymax.jpeg berdasarkan offset dan size. Fungsi ini menghitung pecahan file mana yang perlu dibuka dan membaca data dari beberapa pecahan jika perlu.
+```c
+static int baymax_create(const char *path, mode_t mode, struct fuse_file_info *fi) {
+    char *filename = strdup(path + 1);
+    char tmp_path[256];
+    sprintf(tmp_path, "%s_temp", filename);
+    FILE *f = fopen(tmp_path, "wb");
+    if (!f) return -EIO;
+    fclose(f);
+    fi->fh = (uint64_t)strdup(tmp_path);
+    return 0;
+}
+```
+Membuat file sementara dengan akhiran _temp. File ini digunakan sebagai buffer untuk menyimpan data sebelum dipecah menjadi chunk.
+```c
+static int baymax_write(const char *path, const char *buf, size_t size, off_t offset,
+                        struct fuse_file_info *fi) {
+    char *tmp_path = (char *)fi->fh;
+    FILE *f = fopen(tmp_path, "r+b");
+    if (!f) f = fopen(tmp_path, "wb");
+    if (!f) return -EIO;
+
+    fseek(f, offset, SEEK_SET);
+    fwrite(buf, 1, size, f);
+    fclose(f);
+    return size;
+}
+```
+Menulis data ke file sementara yang dibuat di create. Fungsi ini mendukung operasi tulis yang terfragmentasi dan bersifat sementara.
+```c
+static int baymax_release(const char *path, struct fuse_file_info *fi) {
+    char *tmp_path = (char *)fi->fh;
+    FILE *src = fopen(tmp_path, "rb");
+    if (!src) return -EIO;
+
+    char *filename = strdup(path + 1);
+    char logline[1024];
+    sprintf(logline, "%s -> ", filename);
+
+    int i = 0;
+    while (1) {
+        char chunk_path[256];
+        sprintf(chunk_path, "%s/%s.%03d", RELICS_DIR, filename, i);
+        FILE *out = fopen(chunk_path, "wb");
+        if (!out) break;
+
+        char buf[CHUNK_SIZE];
+        size_t n = fread(buf, 1, CHUNK_SIZE, src);
+        if (n == 0) {
+            fclose(out);
+            remove(chunk_path);
+            break;
+        }
+        fwrite(buf, 1, n, out);
+        fclose(out);
+
+        if (i > 0) strcat(logline, ", ");
+        char frag[64];
+        sprintf(frag, "%s.%03d", filename, i);
+        strcat(logline, frag);
+        i++;
+    }
+    fclose(src);
+    remove(tmp_path);
+    free(tmp_path);
+
+    write_log("WRITE", logline);
+    return 0;
+}
+```
+Ketika file ditutup, data dalam file sementara dipecah menjadi file-file pecahan (`.000`, `.001`, dst) dengan ukuran 1024 byte. Log dicatat dengan label `WRITE`.
+```c
+static int baymax_unlink(const char *path) {
+    char *filename = strdup(path + 1);
+    int i = 0;
+    char chunk_path[256];
+    for (; ; i++) {
+        sprintf(chunk_path, "%s/%s.%03d", RELICS_DIR, filename, i);
+        if (access(chunk_path, F_OK) != 0) break;
+        remove(chunk_path);
+    }
+    char logline[256];
+    sprintf(logline, "DELETE: %s.000 - %s.%03d", filename, filename, i - 1);
+    write_log("DELETE", logline);
+    return 0;
+}
+```
+Menghapus semua pecahan file berdasarkan nama dasar file. Setelah penghapusan, aktivitas dicatat ke log dengan label `DELETE`.
+```c
+static const struct fuse_operations baymax_oper = {
+    .getattr = baymax_getattr,
+    .readdir = baymax_readdir,
+    .open = baymax_open,
+    .read = baymax_read,
+    .create = baymax_create,
+    .write = baymax_write,
+    .release = baymax_release,
+    .unlink = baymax_unlink,
+};
+```
+Struktur ini mendefinisikan operasi filesystem yang digunakan dalam `FUSE`, seperti `getattr`, `readdir`, `open`, `read`, `create`, `write`, `release`, dan `unlink`.
+```c
+int main(int argc, char *argv[]) {
+    if (argc < 3) {
+        fprintf(stderr, "Usage: %s <mountpoint> <relics_dir>\n", argv[0]);
+        return 1;
+    }
+
+    // Simpan path absolut direktori pecahan
+    RELICS_DIR = realpath(argv[argc - 1], NULL);
+    if (!RELICS_DIR) {
+        perror("Invalid relics directory");
+        return 1;
+    }
+
+    // Hapus argumen relics_dir dari argv untuk FUSE
+    argv[argc - 1] = NULL;
+    argc--;
+
+    return fuse_main(argc, argv, &baymax_oper, NULL);
+}
+```
+Fungsi utama program :  
+-  Memeriksa argumen mount point dan direktori pecahan.
+-  Menyimpan path absolut ke `RELICS_DIR`.
+-  Menghapus argumen direktori dari `argv`.
+-  Menjalankan `fuse_main()` untuk memulai filesystem virtual Baymax.
 ## • Soal  3
 Nafis dan Kimcun merupakan dua mahasiswa anomali😱 yang paling tidak tahu sopan santun dan sangat berbahaya di antara angkatan 24. Maka dari itu, Pujo sebagai komting yang baik hati dan penyayang😍, memutuskan untuk membuat sebuah sistem pendeteksi kenakalan bernama Anti Napis Kimcun (AntiNK) untuk melindungi file-file penting milik angkatan 24. Pujo pun kemudian bertanya kepada Asisten bagaimana cara membuat sistem yang benar, para asisten pun merespon (Author: Rafa / kookoon):
 
