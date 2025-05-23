@@ -492,7 +492,31 @@ int main(int argc, char *argv[]) {
     return fuse_main(argc, argv, &baymax_oper, NULL);
 }
 ```
-Program ini membentuk sistem berkas virtual berbasis FUSE yang menyatukan dan mengelola file yang terpecah menjadi beberapa bagian secara transparan. Sistem ini efektif untuk implementasi fitur dekomposisi dan rekonstruksi file besar, serta memberikan jejak audit aktivitas file melalui sistem logging yang jelas.  
+Program ini membentuk sistem berkas virtual berbasis FUSE yang menyatukan dan mengelola file yang terpecah menjadi beberapa bagian secara transparan. Sistem ini efektif untuk implementasi fitur dekomposisi dan rekonstruksi file besar, serta memberikan jejak audit aktivitas file melalui sistem logging yang jelas. Berikut ini command yang digunakan :  
+-  Compile File `baymax.c`
+```
+gcc -Wall baymax.c `pkg-config --cflags --libs fuse3` -o baymax
+```
+-  Jalankan Program Fuse
+```
+./baymax mount_dir relics
+```
+-  Lihat Hasil Mount
+```
+xdg-open mount_dir/Baymax.jpeg
+```
+-  Buat file baru di folder `mount`
+```
+echo "ini file hero" > mount_dir/hero.txt
+```
+-  Hapus File dari folder `mount`
+```
+rm mount_dir/hero.txt
+```
+-  Unmount program fuse
+```
+fusermount3 -u mount_dir
+```
 ```c
 #define FUSE_USE_VERSION 31
 #include <fuse3/fuse.h>
