@@ -2727,8 +2727,41 @@ inflateEnd(&strm);
   
 ### • Kendala yang Dialami Soal 4
 
+<p align="center">
+	<img src="https://github.com/user-attachments/assets/269c170a-63eb-43a2-9548-eb675474ac6f" alt="Chrisye - Kisah Cintaku" width="640" height="360">  
+</p>
+
+> (4.1) Screenshot potret tampilan program `maimai_fs` yang gagal di compile `gcc` karena tidak mencantumkan library `zlib` dan `openssl` 
+
+<p align="center">
+	<img src="https://github.com/user-attachments/assets/1ade9439-f932-4f50-a846-d464830a803a" alt="Drive - Bersama Bintang" width="640" height="360">  
+</p>
+
+> (4.2) Screenshot potret tampilan program `maimai_fs` yang mengalami runtime error di mana program gagal dalam memasukkan file `foo.txt` ke dalam direktori `fuse_dir/starter` yang tidak dikenali oleh sistem.
+
+<p align="center">
+	<img src="https://github.com/user-attachments/assets/70a487a9-1bf4-4167-b135-31ba3087178e" alt="Gigi - 11 Januari" width="640" height="360">  
+</p>
+
+> (4.3) Screenshot potret tampilan folder dari direktori `fuse_dir` yang tidak dikenali oleh VSCode.
+
+<p align="center">
+	<img src="https://github.com/user-attachments/assets/107a1821-aff8-4e8f-a8a7-9c8f30df66c4" alt="Anima - Andai Saja" width="640" height="360">  
+</p>
+
+> (4.4) Screenshot potret tampilan program `maimai_fs` yang gagal dijalankan karena mencoba untuk menjalankannya dalam mode di mana semua user dapat melakukan operasi filesystem pada `FUSE` tersebut.
+
+<p align="center">
+	<img src="https://github.com/user-attachments/assets/658d6ce9-5129-4a24-8c1e-f1fd80bd2221" alt="Armada - Bebaskan Diriku" width="640" height="360">  
+</p>
+
+> (4.5) Screenshot potret tampilan program `maimai_fs` yang mengalami runtime error di mana program gagal dalam membaca file `foo.txt` karena file tersebut dibuat dalam mode `100`.
+
+
 ## • Revisi
+
 ### • Revisi Soal 2
+
 Pada implementasi awal (kode pertama), beberapa fitur utama belum berfungsi dengan baik, antara lain:  
 -  Pembuatan File (Create): Fungsi create belum berhasil membuat file baru di dalam direktori mount point. Hal ini menyebabkan pengguna tidak dapat menyimpan file baru melalui filesystem ini.
 -  Penghapusan File (Unlink): Fungsi unlink belum terimplementasi atau tidak berjalan sebagaimana mestinya, sehingga file yang dihapus dari VFS tidak benar-benar terhapus dari direktori backend.
