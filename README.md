@@ -228,6 +228,293 @@ fusermount -u mnt
 ![4](https://github.com/jagosyafaat30/dokumetnsasi/blob/main/modul4/Screenshot%202025-05-22%20213732.png)
 
 ## • Soal  2
+Pada suatu hari, seorang ilmuwan muda menemukan sebuah drive tua yang tertanam di reruntuhan laboratorium robotik. Saat diperiksa, drive tersebut berisi pecahan data dari satu-satunya robot perawat legendaris yang dikenal dengan nama `Baymax`. Sayangnya, akibat kerusakan sistem selama bertahun-tahun, file utuh Baymax telah terfragmentasi menjadi 14 bagian kecil, masing-masing berukuran 1 kilobyte, dan tersimpan dalam direktori bernama relics. Pecahan tersebut diberi nama berurutan seperti `Baymax.jpeg.000, Baymax.jpeg.001`, hingga `Baymax.jpeg.013`. Ilmuwan tersebut kini ingin membangkitkan kembali Baymax ke dalam bentuk digital yang utuh, namun ia tidak ingin merusak file asli yang telah rapuh tersebut. `(Author : Icel / wonbunsa).`  
+a. Sebagai asisten teknis, tugasmu adalah membuat sebuah sistem file virtual menggunakan `FUSE (Filesystem in Userspace)` yang dapat membantu sang ilmuwan. Buatlah sebuah direktori mount bernama bebas (misalnya `mount_dir`) yang merepresentasikan tampilan Baymax dalam bentuk file utuh `Baymax.jpeg`. File sistem tersebut akan mengambil data dari folder `relics` sebagai sumber aslinya.
+```markdown
+├── mount_dir
+├── relics
+│ ├── Baymax.jpeg.000
+│ ├── Baymax.jpeg.001
+│ ├── dst dst…
+│ └── Baymax.jpeg.013
+└── activity.log
+```
+b. Ketika direktori `FUSE` diakses, pengguna hanya akan melihat `Baymax.jpeg` seolah-olah tidak pernah terpecah, meskipun aslinya terdiri dari potongan `.000` hingga `.013`. File `Baymax.jpeg` tersebut dapat dibaca, ditampilkan, dan disalin sebagaimana file gambar biasa, hasilnya merupakan gabungan sempurna dari keempat belas pecahan tersebut.  
+c. Namun sistem ini harus lebih dari sekadar menyatukan. Jika pengguna membuat file baru di dalam direktori FUSE, maka sistem harus secara otomatis memecah file tersebut ke dalam potongan-potongan berukuran maksimal 1 KB, dan menyimpannya di direktori `relics` menggunakan format `[namafile].000`, `[namafile].001`, dan seterusnya.   
+d. Ketika file tersebut dihapus dari direktori `mount`, semua pecahannya di relics juga harus ikut dihapus.  
+e. Untuk keperluan analisis ilmuwan, sistem juga harus mencatat seluruh aktivitas pengguna dalam sebuah file log bernama `activity.log` yang disimpan di direktori yang sama. Aktivitas yang dicatat antara lain:  
+-  Membaca file (misalnya membuka `baymax.png`)
+-  Membuat file baru (termasuk nama file dan jumlah pecahan)
+-  Menghapus file (termasuk semua pecahannya yang terhapus)
+-  Menyalin file (misalnya `cp baymax.png /tmp/`)
+-  Contoh Log :
+```markdown
+[2025-05-11 10:24:01] READ: Baymax.jpeg
+[2025-05-11 10:25:14] WRITE: hero.txt -> hero.txt.000, hero.txt.001
+[2025-05-11 10:26:03] DELETE: Baymax.jpeg.000 - Baymax.jpeg.013
+[2025-05-11 10:27:45] COPY: Baymax.jpeg -> /tmp/Baymax.jpeg
+```
+### Penyelesaian
+Program ini merupakan implementasi virtual filesystem menggunakan FUSE v3, yang menyatukan dan memanipulasi file gambar yang dipecah menjadi 14 bagian (chunk). File asli bernama Baymax.jpeg, disimpan dalam bentuk terpecah dengan nama Baymax.jpeg.000 hingga Baymax.jpeg.013 di direktori khusus (RELICS_DIR). Filesystem ini mampu melakukan operasi dasar seperti read, write, dan delete terhadap file tersebut secara transparan bagi pengguna.  
+Berikut ini code lengkapnya :  
+```c
+#define FUSE_USE_VERSION 31
+
+#include <fuse3/fuse.h>
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <dirent.h>
+#include <time.h>
+
+// Path ke direktori yang menyimpan file pecahan
+const char *RELICS_DIR = NULL;
+
+// File log aktivitas
+#define LOG_FILE "activity.log"
+
+// Ukuran pecahan file (chunk)
+#define CHUNK_SIZE 1024
+
+// Fungsi untuk mencatat log aktivitas ke file activity.log
+void write_log(const char *action, const char *detail) {
+    FILE *log = fopen(LOG_FILE, "a");
+    if (!log) return;
+
+    time_t t = time(NULL);
+    struct tm *lt = localtime(&t);
+    fprintf(log, "[%04d-%02d-%02d %02d:%02d:%02d] %s: %s\n",
+            lt->tm_year + 1900, lt->tm_mon + 1, lt->tm_mday,
+            lt->tm_hour, lt->tm_min, lt->tm_sec, action, detail);
+
+    fclose(log);
+}
+
+// Mengembalikan atribut file
+static int baymax_getattr(const char *path, struct stat *stbuf, struct fuse_file_info *fi) {
+    memset(stbuf, 0, sizeof(struct stat));
+
+    if (strcmp(path, "/") == 0) {
+        stbuf->st_mode = S_IFDIR | 0755; // direktori
+        stbuf->st_nlink = 2;
+    } else if (strcmp(path, "/Baymax.jpeg") == 0) {
+        stbuf->st_mode = S_IFREG | 0644; // file biasa
+        stbuf->st_nlink = 1;
+
+        // Hitung ukuran total file dari semua chunk
+        char chunk_path[256];
+        FILE *f;
+        size_t size = 0;
+        for (int i = 0; i < 14; i++) {
+            sprintf(chunk_path, "%s/Baymax.jpeg.%03d", RELICS_DIR, i);
+            f = fopen(chunk_path, "rb");
+            if (f) {
+                fseek(f, 0, SEEK_END);
+                size += ftell(f);
+                fclose(f);
+            }
+        }
+        stbuf->st_size = size;
+    } else {
+        return -ENOENT;
+    }
+    return 0;
+}
+
+// Mengisi isi direktori root
+static int baymax_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset,
+                          struct fuse_file_info *fi, enum fuse_readdir_flags flags) {
+    filler(buf, ".", NULL, 0, 0);
+    filler(buf, "..", NULL, 0, 0);
+    filler(buf, "Baymax.jpeg", NULL, 0, 0); // tampilkan file gabungan
+    return 0;
+}
+
+// Membuka file
+static int baymax_open(const char *path, struct fuse_file_info *fi) {
+    if (strcmp(path, "/Baymax.jpeg") != 0)
+        return -ENOENT;
+    write_log("READ", path + 1);
+    return 0;
+}
+
+// Membaca isi file dari chunk
+static int baymax_read(const char *path, char *buf, size_t size, off_t offset,
+                       struct fuse_file_info *fi) {
+    if (strcmp(path, "/Baymax.jpeg") != 0)
+        return -ENOENT;
+
+    size_t bytes_read = 0;
+    int chunk_index = offset / CHUNK_SIZE;
+    size_t chunk_offset = offset % CHUNK_SIZE;
+
+    while (size > 0 && chunk_index < 14) {
+        char chunk_path[256];
+        sprintf(chunk_path, "%s/Baymax.jpeg.%03d", RELICS_DIR, chunk_index);
+
+        FILE *chunk = fopen(chunk_path, "rb");
+        if (!chunk) break;
+
+        fseek(chunk, chunk_offset, SEEK_SET);
+        size_t to_read = CHUNK_SIZE - chunk_offset;
+        if (to_read > size) to_read = size;
+
+        size_t result = fread(buf + bytes_read, 1, to_read, chunk);
+        fclose(chunk);
+
+        if (result == 0) break;
+        size -= result;
+        bytes_read += result;
+
+        chunk_index++;
+        chunk_offset = 0;
+    }
+    return bytes_read;
+}
+
+// Membuat file baru (sementara)
+static int baymax_create(const char *path, mode_t mode, struct fuse_file_info *fi) {
+    char *filename = strdup(path + 1);
+    char tmp_path[256];
+    sprintf(tmp_path, "%s_temp", filename);
+    FILE *f = fopen(tmp_path, "wb");
+    if (!f) return -EIO;
+    fclose(f);
+    fi->fh = (uint64_t)strdup(tmp_path);
+    return 0;
+}
+
+// Menulis ke file sementara
+static int baymax_write(const char *path, const char *buf, size_t size, off_t offset,
+                        struct fuse_file_info *fi) {
+    char *tmp_path = (char *)fi->fh;
+    FILE *f = fopen(tmp_path, "r+b");
+    if (!f) f = fopen(tmp_path, "wb");
+    if (!f) return -EIO;
+
+    fseek(f, offset, SEEK_SET);
+    fwrite(buf, 1, size, f);
+    fclose(f);
+    return size;
+}
+
+// Saat file ditutup, pecah menjadi chunk
+static int baymax_release(const char *path, struct fuse_file_info *fi) {
+    char *tmp_path = (char *)fi->fh;
+    FILE *src = fopen(tmp_path, "rb");
+    if (!src) return -EIO;
+
+    char *filename = strdup(path + 1);
+    char logline[1024];
+    sprintf(logline, "%s -> ", filename);
+
+    int i = 0;
+    while (1) {
+        char chunk_path[256];
+        sprintf(chunk_path, "%s/%s.%03d", RELICS_DIR, filename, i);
+        FILE *out = fopen(chunk_path, "wb");
+        if (!out) break;
+
+        char buf[CHUNK_SIZE];
+        size_t n = fread(buf, 1, CHUNK_SIZE, src);
+        if (n == 0) {
+            fclose(out);
+            remove(chunk_path);
+            break;
+        }
+        fwrite(buf, 1, n, out);
+        fclose(out);
+
+        if (i > 0) strcat(logline, ", ");
+        char frag[64];
+        sprintf(frag, "%s.%03d", filename, i);
+        strcat(logline, frag);
+        i++;
+    }
+    fclose(src);
+    remove(tmp_path);
+    free(tmp_path);
+
+    write_log("WRITE", logline);
+    return 0;
+}
+
+// Menghapus semua chunk file
+static int baymax_unlink(const char *path) {
+    char *filename = strdup(path + 1);
+    int i = 0;
+    char chunk_path[256];
+    for (; ; i++) {
+        sprintf(chunk_path, "%s/%s.%03d", RELICS_DIR, filename, i);
+        if (access(chunk_path, F_OK) != 0) break;
+        remove(chunk_path);
+    }
+    char logline[256];
+    sprintf(logline, "DELETE: %s.000 - %s.%03d", filename, filename, i - 1);
+    write_log("DELETE", logline);
+    return 0;
+}
+
+// Daftar operasi yang didukung filesystem
+static const struct fuse_operations baymax_oper = {
+    .getattr = baymax_getattr,
+    .readdir = baymax_readdir,
+    .open = baymax_open,
+    .read = baymax_read,
+    .create = baymax_create,
+    .write = baymax_write,
+    .release = baymax_release,
+    .unlink = baymax_unlink,
+};
+
+// Fungsi utama
+int main(int argc, char *argv[]) {
+    if (argc < 3) {
+        fprintf(stderr, "Usage: %s <mountpoint> <relics_dir>\n", argv[0]);
+        return 1;
+    }
+
+    // Simpan path absolut direktori pecahan
+    RELICS_DIR = realpath(argv[argc - 1], NULL);
+    if (!RELICS_DIR) {
+        perror("Invalid relics directory");
+        return 1;
+    }
+
+    // Hapus argumen relics_dir dari argv untuk FUSE
+    argv[argc - 1] = NULL;
+    argc--;
+
+    return fuse_main(argc, argv, &baymax_oper, NULL);
+}
+```
+Program ini membentuk sistem berkas virtual berbasis FUSE yang menyatukan dan mengelola file yang terpecah menjadi beberapa bagian secara transparan. Sistem ini efektif untuk implementasi fitur dekomposisi dan rekonstruksi file besar, serta memberikan jejak audit aktivitas file melalui sistem logging yang jelas.  
+```c
+#define FUSE_USE_VERSION 31
+#include <fuse3/fuse.h>
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <dirent.h>
+#include <time.h>
+```
+Bagian ini mengimpor pustaka yang diperlukan oleh program, seperti FUSE, I/O standar, manajemen file dan direktori, serta manajemen waktu untuk pencatatan log. Makro FUSE_USE_VERSION 31 menandakan penggunaan API FUSE versi 3.1.  
+```c
+const char *RELICS_DIR = NULL;
+#define LOG_FILE "activity.log"
+#define CHUNK_SIZE 1024
+```
+-  `RELICS_DIR`: menyimpan path direktori tempat semua pecahan file disimpan.
+-  `LOG_FILE` : nama file untuk mencatat aktivitas filesystem.
+-  `CHUNK_SIZE` : ukuran tiap pecahan file, yaitu 1024 byte.
 ## • Soal  3
 Nafis dan Kimcun merupakan dua mahasiswa anomali😱 yang paling tidak tahu sopan santun dan sangat berbahaya di antara angkatan 24. Maka dari itu, Pujo sebagai komting yang baik hati dan penyayang😍, memutuskan untuk membuat sebuah sistem pendeteksi kenakalan bernama Anti Napis Kimcun (AntiNK) untuk melindungi file-file penting milik angkatan 24. Pujo pun kemudian bertanya kepada Asisten bagaimana cara membuat sistem yang benar, para asisten pun merespon (Author: Rafa / kookoon):
 
