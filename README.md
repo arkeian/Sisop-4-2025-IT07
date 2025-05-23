@@ -272,7 +272,7 @@ fusermount -u mnt
 ## • Soal  2
 
 <p align="justify">
-&emsp; Pada suatu hari, seorang ilmuwan muda menemukan sebuah drive tua yang tertanam di reruntuhan laboratorium robotik. Saat diperiksa, drive tersebut berisi pecahan data dari satu-satunya robot perawat legendaris yang dikenal dengan nama `Baymax`. Sayangnya, akibat kerusakan sistem selama bertahun-tahun, file utuh Baymax telah terfragmentasi menjadi 14 bagian kecil, masing-masing berukuran 1 kilobyte, dan tersimpan dalam direktori bernama relics. Pecahan tersebut diberi nama berurutan seperti `Baymax.jpeg.000, Baymax.jpeg.001`, hingga `Baymax.jpeg.013`. Ilmuwan tersebut kini ingin membangkitkan kembali Baymax ke dalam bentuk digital yang utuh, namun ia tidak ingin merusak file asli yang telah rapuh tersebut.
+&emsp; Pada suatu hari, seorang ilmuwan muda menemukan sebuah drive tua yang tertanam di reruntuhan laboratorium robotik. Saat diperiksa, drive tersebut berisi pecahan data dari satu-satunya robot perawat legendaris yang dikenal dengan nama <code>Baymax</code>. Sayangnya, akibat kerusakan sistem selama bertahun-tahun, file utuh Baymax telah terfragmentasi menjadi 14 bagian kecil, masing-masing berukuran 1 kilobyte, dan tersimpan dalam direktori bernama relics. Pecahan tersebut diberi nama berurutan seperti <code>Baymax.jpeg.000</code>, <code>Baymax.jpeg.001</code>, hingga <code>Baymax.jpeg.013</code>. Ilmuwan tersebut kini ingin membangkitkan kembali Baymax ke dalam bentuk digital yang utuh, namun ia tidak ingin merusak file asli yang telah rapuh tersebut.
 </p>
   
 `(Author : Icel / wonbunsa).`  
@@ -280,7 +280,7 @@ fusermount -u mnt
 <ol type="a">
 	<li>
 		<p align="justify">
-			Sebagai asisten teknis, tugasmu adalah membuat sebuah sistem file virtual menggunakan `FUSE (Filesystem in Userspace)` yang dapat membantu sang ilmuwan. Buatlah sebuah direktori mount bernama bebas (misalnya `mount_dir`) yang merepresentasikan tampilan Baymax dalam bentuk file utuh `Baymax.jpeg`. File sistem tersebut akan mengambil data dari folder `relics` sebagai sumber aslinya.
+			Sebagai asisten teknis, tugasmu adalah membuat sebuah sistem file virtual menggunakan <code>FUSE (Filesystem in Userspace)</code> yang dapat membantu sang ilmuwan. Buatlah sebuah direktori mount bernama bebas (misalnya <code>mount_dir</code>) yang merepresentasikan tampilan Baymax dalam bentuk file utuh <code>Baymax.jpeg</code>. File sistem tersebut akan mengambil data dari folder <code>relics</code> sebagai sumber aslinya.
 		</p>
 	</li>
 </ol>
@@ -298,7 +298,7 @@ fusermount -u mnt
 <ol type="a" start="2">
 	<li>
 		<p align="justify">
-			Ketika direktori `FUSE` diakses, pengguna hanya akan melihat `Baymax.jpeg` seolah-olah tidak pernah terpecah, meskipun aslinya terdiri dari potongan `.000` hingga `.013`. File `Baymax.jpeg` tersebut dapat dibaca, ditampilkan, dan disalin sebagaimana file gambar biasa, hasilnya merupakan gabungan sempurna dari keempat belas pecahan tersebut.  
+			Ketika direktori <code>FUSE</code> diakses, pengguna hanya akan melihat <code>Baymax.jpeg</code> seolah-olah tidak pernah terpecah, meskipun aslinya terdiri dari potongan <code>.000</code> hingga <code>.013</code>. File <code>Baymax.jpeg</code> tersebut dapat dibaca, ditampilkan, dan disalin sebagaimana file gambar biasa, hasilnya merupakan gabungan sempurna dari keempat belas pecahan tersebut.  
 		</p>
 	</li>
 </ol>
@@ -306,7 +306,7 @@ fusermount -u mnt
 <ol type="a" start="3">
 	<li>
 		<p align="justify">
-			Namun sistem ini harus lebih dari sekadar menyatukan. Jika pengguna membuat file baru di dalam direktori FUSE, maka sistem harus secara otomatis memecah file tersebut ke dalam potongan-potongan berukuran maksimal 1 KB, dan menyimpannya di direktori `relics` menggunakan format `[namafile].000`, `[namafile].001`, dan seterusnya.
+			Namun sistem ini harus lebih dari sekadar menyatukan. Jika pengguna membuat file baru di dalam direktori FUSE, maka sistem harus secara otomatis memecah file tersebut ke dalam potongan-potongan berukuran maksimal 1 KB, dan menyimpannya di direktori <code>relics</code> menggunakan format <code>[namafile].000</code>, <code>[namafile].001</code>, dan seterusnya.
 		</p>
 	</li>
 </ol>
@@ -314,7 +314,7 @@ fusermount -u mnt
 <ol type="a" start="4">
 	<li>
 		<p align="justify">
-			Ketika file tersebut dihapus dari direktori `mount`, semua pecahannya di relics juga harus ikut dihapus.
+			Ketika file tersebut dihapus dari direktori <code>mount</code>, semua pecahannya di <code>relics</code> juga harus ikut dihapus.
 		</p>
 	</li>
 </ol>
@@ -322,7 +322,7 @@ fusermount -u mnt
 <ol type="a" start="5">
 	<li>
 		<p align="justify">
-			Untuk keperluan analisis ilmuwan, sistem juga harus mencatat seluruh aktivitas pengguna dalam sebuah file log bernama `activity.log` yang disimpan di direktori yang sama. Aktivitas yang dicatat antara lain:  
+			Untuk keperluan analisis ilmuwan, sistem juga harus mencatat seluruh aktivitas pengguna dalam sebuah file log bernama <code>activity.log</code> yang disimpan di direktori yang sama. Aktivitas yang dicatat antara lain:  
 		</p>
 	</li>
 </ol>
@@ -345,8 +345,13 @@ fusermount -u mnt
 ```
   
 ### • Penyelesaian Soal 2
-Program ini merupakan implementasi virtual filesystem menggunakan FUSE v3, yang menyatukan dan memanipulasi file gambar yang dipecah menjadi 14 bagian (chunk). File asli bernama Baymax.jpeg, disimpan dalam bentuk terpecah dengan nama Baymax.jpeg.000 hingga Baymax.jpeg.013 di direktori khusus (RELICS_DIR). Filesystem ini mampu melakukan operasi dasar seperti read, write, dan delete terhadap file tersebut secara transparan bagi pengguna.  
-Berikut ini code lengkapnya :  
+
+<p align="justify">
+&emsp; Program ini merupakan implementasi virtual filesystem menggunakan FUSE v3, yang menyatukan dan memanipulasi file gambar yang dipecah menjadi 14 bagian (chunk). File asli bernama <code>Baymax.jpeg</code>, disimpan dalam bentuk terpecah dengan nama <code>Baymax.jpeg.000</code> hingga <code>Baymax.jpeg.013</code> di direktori khusus <code>RELICS_DIR</code>. Filesystem ini mampu melakukan operasi dasar seperti read, write, dan delete terhadap file tersebut secara transparan bagi pengguna.
+</p>
+  
+Berikut ini code lengkapnya:
+  
 ```c
 #define FUSE_USE_VERSION 31
 
@@ -1402,7 +1407,7 @@ Kendala-kendala ini menyebabkan keterbatasan dalam menguji fitur lain seperti pe
 ### • Revisi Soal 4
 
 <p align="justify">
-&emsp; Sebelumnya Soal 4: Chiho memiliki kendala di mana suatu subdirektori yang berada di bawah naungan FUSE tidak dapat diakses. Alhasil, program FUSE gagal dalam membuat file baru yang nantinya akan dilakukan pengoperasian pada subsoal-subsoal Soal 4: Chiho. Pada revisi ini, program `maimai_fs` dapat membuat dan me-mounting sistem FUSE pada `fuse_dir`, mempopulasikan direktori `fuse_dir` dan `chiho` dengan subdirektori yang telah didefinisikan dan dinyatakan di dalam soal seperti `starter`, `metro`, `heaven`, dan sebagainya, menggandakan file yang dimasukkan ke dalam direktori virtual `fuse_dir` pada direktori `chiho` yang ada pada disk, serta melakukan beberapa pengoperasian subsoal yang diurutkan berdasarkan waktu penyelesaiannya: 
+&emsp; Sebelumnya Soal 4: Chiho memiliki kendala di mana suatu subdirektori yang berada di bawah naungan FUSE tidak dapat diakses. Alhasil, program FUSE gagal dalam membuat file baru yang nantinya akan dilakukan pengoperasian pada subsoal-subsoal Soal 4: Chiho. Pada revisi ini, program <code>maimai_fs</code> dapat membuat dan me-mounting sistem FUSE pada <code>fuse_dir</code>, mempopulasikan direktori <code>fuse_dir</code> dan <code>chiho</code> dengan subdirektori yang telah didefinisikan dan dinyatakan di dalam soal seperti <code>starter</code>, <code>metro</code>, <code>heaven</code>, dan sebagainya, menggandakan file yang dimasukkan ke dalam direktori virtual <code>fuse_dir</code> pada direktori <code>chiho</code> yang ada pada disk, serta melakukan beberapa pengoperasian subsoal yang diurutkan berdasarkan waktu penyelesaiannya: 
 </p>
   
 1) Subsoal 4.A: Starter, menampilkan file pada direktori `chiho` yang dimasukkan dengan cara memasukkannya ke dalam direktori `fuse_dir`.
@@ -1412,7 +1417,7 @@ Kendala-kendala ini menyebabkan keterbatasan dalam menguji fitur lain seperti pe
 5) Subsoal 4.E: Heaven, melakukan enkripsi menggunakan metode enkripsi AES-256-CBC yang ada pada library `<openssl>`.
 
 <p align="justify">
-Adapun tampilan program revisi dari `maimai_fs` adalah sebagai berikut:
+Adapun tampilan program revisi dari <code>maimai_fs</code> adalah sebagai berikut:
 </p>
   
 ```c
@@ -2129,11 +2134,11 @@ int main(int argc, char *argv[]) {
 #### • Kendala yang Masih Dialami
 
 <p align="justify">
-&emsp; Pada kasus tertentu dimana program `maimai_fs` memerlukan suatu file untuk dibuat didalam FUSE yang diluar penanganan function `xmp_create()` maka file tersebut akan terbuat hanya dengan hak ases eksekusi untuk `root` saja. Kasus ini menyebabkan `user`, `groups`, atau bahkan `root` sendiri tidak dapat membaca file tersebut sehingga saat dijalankan command `cat` maka prosesnya akan melemparkan error ke layar terminal. Sebelumnya, saat proses inisiasi dan mempopulasikan direktori `fuse_dir` dan `chiho` dengan subdirektori yang telah didefinisikan dan dinyatakan di dalam soal, function `xmp_create()` menyediakan opsi untuk membuat file tersebut dalam mode `0777` di mana semua pengguna baik itu `root`, `user`, atau `groups` dapat mengeksekusi, membaca, dan menulis terhadap file yang dibuat tersebut.
+&emsp; Pada kasus tertentu dimana program <code>maimai_fs</code> memerlukan suatu file untuk dibuat didalam FUSE yang diluar penanganan function <code>xmp_create()</code> maka file tersebut akan terbuat hanya dengan hak ases eksekusi untuk <code>root</code> saja. Kasus ini menyebabkan <code>user</code>, <code>groups</code>, atau bahkan <code>root</code> sendiri tidak dapat membaca file tersebut sehingga saat dijalankan command <code>cat</code> maka prosesnya akan melemparkan error ke layar terminal. Sebelumnya, saat proses inisiasi dan mempopulasikan direktori <code>fuse_dir</code> dan <code>chiho</code> dengan subdirektori yang telah didefinisikan dan dinyatakan di dalam soal, function <code>xmp_create()</code> menyediakan opsi untuk membuat file tersebut dalam mode <code>0777</code> di mana semua pengguna baik itu <code>root</code>, <code>user</code>, atau <code>groups</code> dapat mengeksekusi, membaca, dan menulis terhadap file yang dibuat tersebut.
 </p>
-  
+
 <p align="justify">
-&emsp; Namun, ada beberapa kasus pada program ini di mana program tidak akan menggunakan `xmp_create()` atau mode `0777` dalam pembuatannya, sehingga file tersebut kembali ke bentuk setelan awalnya. Kasus ini dapat dilihat pada saat mencoba untuk mengdekompres file yang sebelumnya telah terkompres menggunakan zlib yang telah dinyatakan pada subsoal 4.F: Skystreet. File hasil dekompres yang diciptakan pada program ini tidak dapat dibuka baik melalui command line seperti menggunakan `cat` atau secara UI pada VSCode.
+&emsp; Namun, ada beberapa kasus pada program ini di mana program tidak akan menggunakan <code>xmp_create()</code> atau mode <code>0777</code> dalam pembuatannya, sehingga file tersebut kembali ke bentuk setelan awalnya. Kasus ini dapat dilihat pada saat mencoba untuk mengdekompres file yang sebelumnya telah terkompres menggunakan zlib yang telah dinyatakan pada subsoal 4.F: Skystreet. File hasil dekompres yang diciptakan pada program ini tidak dapat dibuka baik melalui command line seperti menggunakan <code>cat</code> atau secara UI pada VSCode.
 </p>
 
 <p align="center">
