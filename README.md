@@ -2477,6 +2477,256 @@ static int mai_unlink(const char *path)
 }
 ```
 
+<p align="justify">
+&emsp; Dengan penjelasan dari setiap function operasi filesystem yang tertera:
+</p>
+
+<ol type="a" start="1">
+	<li>
+		<p align="justify">
+			<code>mai_getattr</code>: Menangani atribut file dan direktori. Melakukan pemeriksaan berdasarkan nama path untuk mengarahkan ke file asli di direktori <code>chiho</code>. Jika merupakan file dalam direktori tertentu, maka path disesuaikan dengan ekstensi spesifik direktori tersebut.
+		</p>
+	</li>
+</ol>
+
+<ol type="a" start="2">
+	<li>
+		<p align="justify">
+			<code>mai_readdir</code>: Mengisi isi direktori berdasarkan isi folder <code>chiho/[area]</code>. File yang ditampilkan akan disaring untuk hanya menampilkan nama tanpa ekstensi sesuai dengan konfigurasi masing-masing direktori.
+		</p>
+	</li>
+</ol>
+  
+<ol type="a" start="3">
+	<li>
+		<p align="justify">
+			<code>mai_open</code>: Menangani pembukaan file untuk dibaca atau ditulis.
+		</p>
+	</li>
+</ol>
+
+<ol type="a" start="4">
+	<li>
+		<p align="justify">
+			<code>mai_read</code>: Menangani proses pembacaan isi file yang ada pada variabel <code>buf</code>.
+		</p>
+	</li>
+</ol>
+  
+<ol type="a" start="5">
+	<li>
+		<p align="justify">
+			<code>mai_write</code>: Menangani proses penulisan isi file dengan format sesuai dengan ketentuan yang telah dinyatakan oleh masing-masing subsoal.
+		</p>
+	</li>
+</ol>
+<ol type="a" start="4">
+	<li>
+		<p align="justify">
+			<code>mai_create</code>: Menangani proses pembuatan file dengan format sesuai dengan ketentuan yang telah dinyatakan oleh masing-masing subsoal.
+		</p>
+	</li>
+</ol>
+
+### • Penyelesaian Soal 4
+
+#### • Soal 4.A: Starter
+
+<p align="justify">
+&emsp; Pada subsoal 4.A: Starter kita diminta untuk membuat program yang dapat menyimpan file yang sama pada direktori <code>fuse_dir</code> dan <code>chiho</code> tanpa terdapat ada perubahan pada isi dari file tersebut, sehingga secara teknis subsoal 4.A: Starter hanya perlu mengimplementasikan struktur dasar dari suatu program <code>FUSE</code> dan hanya perlu menambahkan logika di mana nama dari file tersebut mendapat imbuhan <code>.mai</code>.
+</p>
+
+#### • Soal 4.B: Metro
+
+<p align="justify">
+&emsp; Pada subsoal 4.B: Metro kita diminta untuk membuat program yang dapat menyimpan file yang sama pada direktori <code>fuse_dir</code> dan <code>chiho</code> dengan ada perubahan pada isi dari file tersebut, di mana nama dari file tersebut mendapat imbuhan <code>.ccc</code> dan isi dari file tersebut pada variabel <code>buf</code> terenkripsi dengan melakukan proses shifting karakter sesuai dengan offset karakter tersebut pada file yang disimpan pada variabel <code>offset</code> saat proses <code>mai_write</code>-nya.
+</p>
+
+<p align="justify">
+&emsp; Adapun tampilan logika enkripsi shifting berdasarkan offset secara umum yang digunakan untuk subsoal 4.B: Metro adalah sebagai berikut:
+</p>
+
+```c
+for (size_t i = 0; i < size; i++) {
+	if (buf[i] == '\0' || buf[i] == '\n') {
+		continue;
+	}
+	buf[i] = buf[i] + ((offset + i) % 256);
+}
+```
+
+#### • Soal 4.C: Dragon
+
+<p align="justify">
+&emsp; Pada subsoal 4.C: Dragon kita diminta untuk membuat program yang dapat menyimpan file yang sama pada direktori <code>fuse_dir</code> dan <code>chiho</code> dengan ada perubahan pada isi dari file tersebut, di mana nama dari file tersebut mendapat imbuhan <code>.rot</code> dan isi dari file tersebut pada variabel <code>buf</code> terenkripsi dengan metode enkripsi ROT13 saat proses <code>mai_write</code>-nya.
+</p>
+
+<p align="justify">
+&emsp; Adapun tampilan logika enkripsi metode ROT13 secara umum yang digunakan untuk subsoal 4.C: Dragon adalah sebagai berikut:
+</p>
+
+```c
+for (size_t i = 0; i < sz; i++) {
+	if (buf[i] >= 'A' && buf[i] <= 'Z') {
+		buf[i] = ((buf[i] - 'A' + 13) % 26) + 'A';
+	}
+	else if (buf[i] >= 'a' && buf[i] <= 'z') {
+		buf[i] = ((buf[i] - 'a' + 13) % 26) + 'a';
+	}
+	else {
+		buf[i] = buf[i];
+	}
+}
+```
+  
+#### • Soal 4.D: Blackrose
+
+<p align="justify">
+&emsp; Pada subsoal 4.D: Dragon kita diminta untuk membuat program yang dapat menyimpan file yang sama pada direktori <code>fuse_dir</code> dan <code>chiho</code> dengan ada perubahan pada tipe dari file tersebut, di mana nama dari file tersebut mendapat imbuhan <code>.bin</code> yang menyatakan bahwa file tersebut merupakan file dengan tipe binary saat proses <code>mai_create</code>-nya.
+</p>
+
+#### • Soal 4.E: Heaven
+
+<p align="justify">
+&emsp; Pada subsoal 4.E: Heaven kita diminta untuk membuat program yang dapat menyimpan file yang sama pada direktori <code>fuse_dir</code> dan <code>chiho</code> dengan ada perubahan pada isi dari file tersebut, di mana nama dari file tersebut mendapat imbuhan <code>.enc</code> dan isi dari file tersebut pada variabel <code>buf</code> terenkripsi dengan metode enkripsi AES-256-CBC saat proses <code>mai_write</code>-nya.
+</p>
+
+<p align="justify">
+&emsp; Adapun tampilan logika enkripsi metode AES-256-CBC secara umum yang digunakan untuk subsoal 4.E: Heaven adalah sebagai berikut:
+</p>
+
+```c
+unsigned char iv[16];
+RAND_bytes(iv, sizeof(iv));
+if (pwrite(fd, iv, sizeof(iv), ofst) != sizeof(iv)) {
+	return -errno;
+}
+EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new();
+
+unsigned char key[32] = {0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37,
+							0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35,
+							0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33,
+							0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31};
+
+unsigned char out[sz + EVP_CIPHER_block_size(EVP_aes_256_cbc())];
+int len;
+EVP_EncryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, key, iv);
+EVP_EncryptUpdate(ctx, out, &len, (const unsigned char *)buf, size);
+int cipherLen = len;
+EVP_EncryptFinal_ex(ctx, out + len, &len);
+cipherLen += len;
+EVP_CIPHER_CTX_free(ctx);
+if (pwrite(fd, out, cipherLen, sizeof(iv) + offset) != cipherLen) {
+	return -errno;
+}
+
+return size;
+```
+  
+#### • Soal 4.F: Skystreet
+
+<p align="justify">
+&emsp; Pada subsoal 4.F: Skystreet kita diminta untuk membuat program yang dapat menyimpan file yang sama pada direktori <code>fuse_dir</code> dan <code>chiho</code> dengan ada perubahan pada tipe dari file tersebut, di mana nama dari file tersebut mendapat imbuhan <code>.gz</code> dan tipe dari file tersebut berubah menjadi versi yang dikompres saat proses <code>mai_write</code>-nya.
+</p>
+
+<p align="justify">
+&emsp; Adapun tampilan logika proses kompres file secara umum yang digunakan untuk subsoal 4.F: Skystreet menggunakan library zlib dan berdasarkan referensi yang ada pada situs: https://zlib.net/zlib_how.html adalah sebagai berikut:
+</p>
+
+```c
+int ret;
+unsigned have;
+z_stream strm;
+unsigned char out[CHUNK];
+
+strm.zalloc = Z_NULL;
+strm.zfree = Z_NULL;
+strm.opaque = Z_NULL;
+
+ret = deflateInit2(&strm, Z_DEFAULT_COMPRESSION, Z_DEFLATED, 15 + 16, 8, Z_DEFAULT_STRATEGY);
+if (ret != Z_OK) {
+	close(fd);
+	return -errno;
+}
+
+strm.next_in = (Bytef *)buf;
+strm.avail_in = sz;
+
+do {
+	strm.next_out = out;
+	strm.avail_out = CHUNK;
+	ret = deflate(&strm, Z_FINISH);
+
+	if (ret == Z_STREAM_ERROR) {
+		(void)deflateEnd(&strm);
+		close(fd);
+		return -errno;
+	}
+	have = CHUNK - strm.avail_out;
+
+	if (pwrite(fd, out, have, offset) != have) {
+		(void)deflateEnd(&strm);
+		close(fd);
+		return -errno;
+	}
+} while (strm.avail_out == 0);
+
+deflateEnd(&strm);
+```
+
+<p align="justify">
+&emsp; Sedangkan tampilan logika proses dekompres file secara umum yang digunakan untuk subsoal 4.F: Skystreet menggunakan library zlib dan berdasarkan referensi yang ada pada situs: https://zlib.net/zlib_how.html adalah sebagai berikut:
+</p>
+
+```c
+int ret;
+unsigned have;
+z_stream strm;
+unsigned char out[CHUNK];
+
+strm.zalloc = Z_NULL;
+strm.zfree = Z_NULL;
+strm.opaque = Z_NULL;
+strm.next_in = (Bytef *)buf;
+strm.avail_in = sz;
+
+ret = inflateInit2(&strm, 15 + 16);
+if (ret != Z_OK) {
+	close(fd);
+	return -errno;
+}
+
+
+do {
+	strm.next_out = out;
+	strm.avail_out = CHUNK;
+	ret = inflate(&strm, Z_NO_FLUSH);
+
+	if (ret == Z_STREAM_ERROR || ret == Z_DATA_ERROR || ret == Z_MEM_ERROR) {
+		(void)inflateEnd(&strm);
+		close(fd);
+		return -errno;
+	}
+	have = CHUNK - strm.avail_out;
+
+	if (pwrite(fd, out, have, offset) != have) {
+		(void)inflateEnd(&strm);
+		close(fd);
+		return -errno;
+	}
+} while (ret != Z_STREAM_END);
+
+inflateEnd(&strm);
+```
+
+#### • Soal 4.G: 7sref
+
+<p align="justify">
+&emsp; Pada subsoal 4.G: 7sref kita diminta untuk membuat program yang dapat mengalihkan semua arus yang masuk ke folder <code>fuse_dir/7sref</code> ke folder lain yang sesuai dengan nama dari file yang dimasukkan. Kemudian file tersebut akan diproses secara normal dengan sebagaimana mestinya.
+</p>
+  
+### • Kendala yang Dialami Soal 4
+
 ## • Revisi
 ### • Revisi Soal 2
 Pada implementasi awal (kode pertama), beberapa fitur utama belum berfungsi dengan baik, antara lain:  
