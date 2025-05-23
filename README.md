@@ -1297,17 +1297,11 @@ Pada versi revisi (kode kedua), seluruh fitur yang belum berjalan pada kode pert
 -  Fungsi create Berfungsi: Pengguna dapat membuat file baru di dalam virtual filesystem. File tersebut akan otomatis terfragmentasi ke dalam potongan 1 KB jika dilakukan penulisan (write).
 -  Fungsi unlink Aktif: File yang dihapus melalui VFS akan menghapus semua fragmen file terkait dari direktori backend, sesuai dengan format penamaan {nama_file}.frag{i}.
 -  Logging Aktif: Setiap operasi read, write, create, unlink, dan rename dicatat secara otomatis dalam berkas log baymax.log. Format log mengikuti standar timestamped dengan jenis operasi dan path file yang digunakan.
-### Berikut contoh kalimat untuk menjelaskan kendala yang Anda alami dalam laporan:
-
----
 
 ### Kendala yang Dihadapi
-
 Pada tahap pengembangan awal virtual filesystem menggunakan FUSE, kami mengalami beberapa kendala teknis yang cukup signifikan, yaitu:
-
 1.  FUSE tidak berjalan pada terminal
    Saat menjalankan program FUSE di terminal, filesystem gagal ter-mount dan tidak aktif sebagaimana yang diharapkan. Hal ini menghambat pengujian dan penggunaan fitur-fitur dasar filesystem.
-
 2.  Tidak dapat membuat file baru
    Fungsi pembuatan file (`create`) tidak berfungsi dengan baik. Pengguna tidak dapat membuat file baru melalui filesystem, sehingga operasi tulis dan manipulasi file menjadi terbatas dan tidak dapat diuji secara optimal.
 
